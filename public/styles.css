@@ -1,0 +1,256 @@
+:root {
+  color-scheme: light;
+  --page: #f2f2f7;
+  --card: #ffffff;
+  --text: #1c1c1e;
+  --secondary: #636366;
+  --muted: #8e8e93;
+  --line: rgba(0, 0, 0, 0.07);
+  --blue: #3478f6;
+  --soft-blue: #e8f0fe;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--page);
+  color: var(--text);
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+a {
+  color: var(--blue);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+.feed-shell {
+  width: min(720px, 100%);
+  min-height: 100vh;
+  margin: 0 auto;
+  background: var(--page);
+}
+
+.feed {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 14px 28px;
+}
+
+.date-divider {
+  display: flex;
+  justify-content: center;
+  margin: 5px 0 4px;
+}
+
+.date-divider span {
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.06);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.post {
+  width: 100%;
+}
+
+.post-body {
+  min-width: 0;
+  padding: 16px 18px 14px;
+  background: var(--card);
+  border-radius: 14px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.post-text {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--text);
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.post-meta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.post time {
+  color: inherit;
+  font: inherit;
+}
+
+.media-grid {
+  display: grid;
+  gap: 6px;
+  margin-top: 0;
+  overflow: hidden;
+  border-radius: 13px;
+  background: #e5e5ea;
+}
+
+.post-text + .media-grid {
+  margin-top: 10px;
+}
+
+.media-grid:has(:nth-child(2)) {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.media-grid img,
+.media-grid video {
+  display: block;
+  width: 100%;
+  max-height: 430px;
+  object-fit: cover;
+  background: #e5e5ea;
+}
+
+.media-grid audio {
+  width: 100%;
+  grid-column: 1 / -1;
+}
+
+.voice-message {
+  display: flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 14px;
+  background: #f2f2f7;
+  border-radius: 14px;
+}
+
+.voice-play {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--blue);
+  color: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 18px;
+  line-height: 1;
+  padding-left: 3px;
+  transition: transform 140ms ease, filter 140ms ease;
+}
+
+.voice-play:active {
+  transform: scale(0.96);
+}
+
+.voice-play:hover {
+  filter: brightness(0.96);
+}
+
+.voice-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.voice-title {
+  margin-bottom: 8px;
+  color: var(--secondary);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.voice-content audio {
+  display: block;
+  width: 100%;
+  min-width: 180px;
+  height: 36px;
+}
+
+.file-link {
+  display: block;
+  padding: 13px 14px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: #f2f2f7;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.empty {
+  width: min(420px, 100%);
+  margin: 18vh auto 0;
+  padding: 20px;
+  color: var(--muted);
+  background: var(--card);
+  border-radius: 16px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.state-page {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.state-card {
+  width: min(420px, 100%);
+  padding: 24px;
+  background: var(--card);
+  border-radius: 16px;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.state-card h1 {
+  margin: 0 0 10px;
+  font-size: 24px;
+}
+
+.state-card p {
+  margin: 0;
+  color: var(--secondary);
+  line-height: 1.5;
+}
+
+@media (max-width: 560px) {
+  .feed {
+    gap: 10px;
+    padding: 10px 10px 22px;
+  }
+
+  .post-body {
+    padding: 14px 14px 12px;
+    border-radius: 13px;
+  }
+
+  .post-text {
+    font-size: 15px;
+  }
+
+  .post-meta {
+    margin-top: 9px;
+    font-size: 12px;
+  }
+}
