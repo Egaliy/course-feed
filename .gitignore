@@ -1,7 +1,10 @@
 node_modules
 .env
 .vercel
+*.log
 data/*.json
 public/uploads/*
 !public/uploads/.gitkeep
+!public/uploads/egaliy.jpg
+!public/uploads/borisova.jpg
 .vercel

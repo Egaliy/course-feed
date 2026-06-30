@@ -4,7 +4,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Store } from './store.js';
 import { createBot } from './bot.js';
-import { renderExpiredPage, renderFeedPage, renderMissingPage, renderPublicFeedPage } from './render.js';
+import { verifyAccessToken } from './access-token.js';
+import {
+  renderFeedPage,
+  renderRegistrationPage,
+  renderRegistrationSuccessPage
+} from './render.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..');
@@ -16,28 +21,60 @@ const title = process.env.COURSE_TITLE || 'Лента курса';
 const botToken = process.env.BOT_TOKEN;
 const publicBaseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${port}`;
 const adminIds = (process.env.ADMIN_IDS || '').split(',').map((id) => id.trim()).filter(Boolean);
+const accessSecret = process.env.ACCESS_TOKEN_SECRET || botToken || 'local-access-secret';
 
 const store = new Store(path.join(rootDir, 'data', 'db.json'));
 await store.load();
 
 const app = express();
 app.disable('x-powered-by');
+app.use(express.urlencoded({ extended: false }));
 app.use(express.static(publicDir));
 
 app.get('/', (req, res) => {
-  res.send(renderPublicFeedPage({ title, posts: store.getPosts() }));
-});
-
-app.get('/a/:token', (req, res) => {
-  const access = store.findAccessLink(req.params.token);
-
-  if (!access) {
-    res.status(404).send(renderMissingPage({ title }));
+  const token = getAccessTokenFromQuery(req);
+  if (!token) {
+    res.send(renderRegistrationPage({ title }));
     return;
   }
 
-  if (new Date(access.expiresAt) < new Date()) {
-    res.status(403).send(renderExpiredPage({ title }));
+  const access = getAccess(token);
+  if (!isActiveAccess(access)) {
+    res.send(renderRegistrationPage({ title }));
+    return;
+  }
+
+  res.send(renderFeedPage({ title, posts: store.getPosts(), access }));
+});
+
+app.post('/register', async (req, res) => {
+  const name = String(req.body.name || '').trim();
+  const contact = String(req.body.contact || '').trim();
+  const note = String(req.body.note || '').trim();
+
+  if (!name || !contact) {
+    res.status(400).send(renderRegistrationPage({
+      title,
+      error: 'Укажите имя и контакт для связи.',
+      values: { name, contact, note }
+    }));
+    return;
+  }
+
+  const registration = await store.addRegistration({ name, contact, note });
+  await notifyAdminsAboutRegistration({ botToken, adminIds, registration });
+  res.send(renderRegistrationSuccessPage({ title }));
+});
+
+app.get('/feed', (req, res) => {
+  res.redirect('/');
+});
+
+app.get('/a/:token', (req, res) => {
+  const access = getAccess(req.params.token);
+
+  if (!isActiveAccess(access)) {
+    res.send(renderRegistrationPage({ title }));
     return;
   }
 
@@ -64,4 +101,63 @@ if (!botToken || !adminIds.length) {
 
   process.once('SIGINT', () => bot.stop('SIGINT'));
   process.once('SIGTERM', () => bot.stop('SIGTERM'));
+}
+
+async function notifyAdminsAboutRegistration({ botToken, adminIds, registration }) {
+  if (!botToken || !adminIds.length) return;
+
+  const lines = [
+    'Новая заявка на курс',
+    '',
+    `Имя: ${registration.name}`,
+    `Контакт: ${registration.contact}`
+  ];
+
+  if (registration.note) {
+    lines.push(`Комментарий: ${registration.note}`);
+  }
+
+  lines.push('', `Время: ${formatDateTime(registration.createdAt)}`);
+
+  const message = lines.join('\n');
+  const results = await Promise.allSettled(
+    adminIds.map((chatId) => sendTelegramMessage({ botToken, chatId, text: message }))
+  );
+
+  for (const result of results) {
+    if (result.status === 'rejected') {
+      console.error('Registration notification failed:', result.reason);
+    }
+  }
+}
+
+async function sendTelegramMessage({ botToken, chatId, text }) {
+  const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ chat_id: chatId, text })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Telegram sendMessage failed: ${response.status} ${await response.text()}`);
+  }
+}
+
+function formatDateTime(value) {
+  return new Intl.DateTimeFormat('ru-RU', {
+    dateStyle: 'short',
+    timeStyle: 'short'
+  }).format(new Date(value));
+}
+
+function getAccessTokenFromQuery(req) {
+  return String(req.query.k || req.query.code || req.query.access || '').trim();
+}
+
+function getAccess(token) {
+  return verifyAccessToken(token, accessSecret) || store.findAccessLink(token);
+}
+
+function isActiveAccess(access) {
+  return Boolean(access) && new Date(access.expiresAt) >= new Date();
 }

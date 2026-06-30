@@ -4,7 +4,8 @@ import crypto from 'node:crypto';
 
 const defaultState = {
   posts: [],
-  accessLinks: []
+  accessLinks: [],
+  registrations: []
 };
 
 export class Store {
@@ -71,4 +72,24 @@ export class Store {
   findAccessLink(token) {
     return this.state.accessLinks.find((link) => link.token === token);
   }
+
+  getRegistrations() {
+    return [...this.state.registrations].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  }
+
+  async addRegistration(input) {
+    const registration = {
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      name: '',
+      contact: '',
+      note: '',
+      ...input
+    };
+
+    this.state.registrations.push(registration);
+    await this.save();
+    return registration;
+  }
+
 }

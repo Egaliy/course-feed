@@ -1,11 +1,14 @@
 import { Telegraf, Markup } from 'telegraf';
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { createAccessToken } from './access-token.js';
 import { downloadTelegramFile, extractMedia, extractText } from './media.js';
 
 const durations = [
   { label: '1 месяц', months: 1 },
   { label: '3 месяца', months: 3 },
-  { label: '6 месяцев', months: 6 }
+  { label: '6 месяцев', months: 6 },
+  { label: '9 месяцев', months: 9 }
 ];
 
 export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir }) {
@@ -15,14 +18,14 @@ export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir 
 
   bot.start((ctx) => {
     if (!isAdmin(ctx, adminIds)) return ctx.reply('Нет доступа.');
-    return ctx.reply('Готов публиковать посты. Отправьте текст, фото, видео или аудио. Для ссылки используйте /link.');
+    return ctx.reply('Готов публиковать посты. Отправьте текст, фото, видео или аудио. Для ссылки ученику используйте /link.');
   });
 
   bot.command('link', async (ctx) => {
     if (!isAdmin(ctx, adminIds)) return ctx.reply('Нет доступа.');
 
     return ctx.reply(
-      'На какой срок выдать доступ?',
+      'На какой срок выдать доступ ученику?',
       Markup.inlineKeyboard(durations.map((item) => Markup.button.callback(item.label, `link:${item.months}`)))
     );
   });
@@ -31,11 +34,12 @@ export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir 
     if (!isAdmin(ctx, adminIds)) return ctx.answerCbQuery('Нет доступа.');
 
     const months = Number(ctx.match[1]);
-    const access = await store.createAccessLink(months);
-    const url = `${publicBaseUrl.replace(/\/$/, '')}/a/${access.token}`;
+    const token = createAccessToken({ months, secret: getAccessSecret(botToken) });
+    const baseUrl = readPublicBaseUrl(publicBaseUrl);
+    const url = `${baseUrl.replace(/\/$/, '')}/?k=${token}`;
 
     await ctx.answerCbQuery('Ссылка создана');
-    return ctx.reply(`Ссылка на ${monthsText(months)}:\n${url}\n\nТестовая публичная лента:\n${publicBaseUrl.replace(/\/$/, '')}/`);
+    return ctx.reply(`Ссылка-доступ на ${monthsText(months)}:\n${url}`);
   });
 
   bot.on('message', async (ctx) => {
@@ -156,4 +160,20 @@ function monthsText(months) {
   if (months === 1) return '1 месяц';
   if (months > 1 && months < 5) return `${months} месяца`;
   return `${months} месяцев`;
+}
+
+function readPublicBaseUrl(fallback) {
+  try {
+    const envPath = path.join(process.cwd(), '.env');
+    const raw = readFileSync(envPath, 'utf8');
+    const line = raw.split(/\r?\n/).find((item) => item.startsWith('PUBLIC_BASE_URL='));
+    const value = line?.slice('PUBLIC_BASE_URL='.length).trim().replace(/^["']|["']$/g, '');
+    return value || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function getAccessSecret(botToken) {
+  return process.env.ACCESS_TOKEN_SECRET || botToken || 'local-access-secret';
 }

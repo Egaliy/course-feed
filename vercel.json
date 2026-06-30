@@ -2,6 +2,14 @@
   "version": 2,
   "rewrites": [
     {
+      "source": "/feed",
+      "destination": "/api"
+    },
+    {
+      "source": "/a/:token",
+      "destination": "/api?token=:token"
+    },
+    {
       "source": "/",
       "destination": "/api"
     }

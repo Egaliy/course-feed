@@ -22,6 +22,35 @@ export function renderPublicFeedPage({ title, posts }) {
   `);
 }
 
+export function renderRegistrationPage({ title, error = '', values = {} }) {
+  return page(`Регистрация - ${title}`, `
+    <main class="register-shell">
+      <section class="register-card">
+        <div class="register-copy">
+          <p class="register-kicker">${escapeHtml(title)}</p>
+          <h1>Регистрация на курс открыта</h1>
+          <p>Чтобы получить доступ к курсу, напишите администратору в Telegram.</p>
+        </div>
+        <div class="register-action">
+          <img class="admin-avatar" src="/uploads/borisova.jpg" alt="@BorisovaAleksandraP" loading="lazy">
+          <a class="admin-link" href="https://t.me/BorisovaAleksandraP" target="_blank" rel="noreferrer">Написать @BorisovaAleksandraP</a>
+        </div>
+      </section>
+    </main>
+  `);
+}
+
+export function renderRegistrationSuccessPage({ title }) {
+  return page(`Заявка отправлена - ${title}`, `
+    <main class="state-page">
+      <section class="state-card">
+        <h1>Заявка отправлена</h1>
+        <p>Спасибо! Мы получили вашу регистрацию и скоро свяжемся с вами.</p>
+      </section>
+    </main>
+  `);
+}
+
 export function renderExpiredPage({ title }) {
   return page(title, `
     <main class="state-page">
