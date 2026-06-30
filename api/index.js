@@ -7,7 +7,7 @@ import { renderFeedPage, renderRegistrationPage } from '../src/render.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..');
 const title = process.env.COURSE_TITLE || 'Лента курса';
-const accessSecret = process.env.ACCESS_TOKEN_SECRET || process.env.BOT_TOKEN || 'local-access-secret';
+const accessSecret = process.env.ACCESS_TOKEN_SECRET || 'course-feed-access-v1';
 const dbPath = path.join(rootDir, 'data', 'db.json');
 
 export default async function handler(req, res) {

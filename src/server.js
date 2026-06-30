@@ -21,7 +21,7 @@ const title = process.env.COURSE_TITLE || 'Лента курса';
 const botToken = process.env.BOT_TOKEN;
 const publicBaseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${port}`;
 const adminIds = (process.env.ADMIN_IDS || '').split(',').map((id) => id.trim()).filter(Boolean);
-const accessSecret = process.env.ACCESS_TOKEN_SECRET || botToken || 'local-access-secret';
+const accessSecret = process.env.ACCESS_TOKEN_SECRET || 'course-feed-access-v1';
 
 const store = new Store(path.join(rootDir, 'data', 'db.json'));
 await store.load();

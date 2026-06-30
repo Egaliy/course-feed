@@ -34,7 +34,7 @@ export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir 
     if (!isAdmin(ctx, adminIds)) return ctx.answerCbQuery('Нет доступа.');
 
     const months = Number(ctx.match[1]);
-    const token = createAccessToken({ months, secret: getAccessSecret(botToken) });
+    const token = createAccessToken({ months, secret: getAccessSecret() });
     const baseUrl = readPublicBaseUrl(publicBaseUrl);
     const url = `${baseUrl.replace(/\/$/, '')}/?k=${token}`;
 
@@ -174,6 +174,6 @@ function readPublicBaseUrl(fallback) {
   }
 }
 
-function getAccessSecret(botToken) {
-  return process.env.ACCESS_TOKEN_SECRET || botToken || 'local-access-secret';
+function getAccessSecret() {
+  return process.env.ACCESS_TOKEN_SECRET || 'course-feed-access-v1';
 }
