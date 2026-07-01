@@ -3,6 +3,13 @@ export function renderFeedPage({ title, posts, access }) {
 
   return page(title, `
     <main class="feed-shell">
+      <header class="feed-header">
+        <div>
+          <p class="eyebrow">Закрытая лента</p>
+          <h1>${escapeHtml(title)}</h1>
+        </div>
+        <span class="access-badge">Доступ открыт</span>
+      </header>
       <section class="feed">
         ${items || '<article class="empty">Здесь пока нет публикаций.</article>'}
       </section>
@@ -15,6 +22,12 @@ export function renderPublicFeedPage({ title, posts }) {
 
   return page(title, `
     <main class="feed-shell">
+      <header class="feed-header">
+        <div>
+          <p class="eyebrow">Лента курса</p>
+          <h1>${escapeHtml(title)}</h1>
+        </div>
+      </header>
       <section class="feed">
         ${items || '<article class="empty">Здесь пока нет публикаций.</article>'}
       </section>
@@ -22,12 +35,12 @@ export function renderPublicFeedPage({ title, posts }) {
   `);
 }
 
-export function renderRegistrationPage({ title, error = '', values = {} }) {
+export function renderRegistrationPage({ title }) {
   return page(`Регистрация - ${title}`, `
     <main class="register-shell">
       <section class="register-card">
         <div class="register-copy">
-          <p class="register-kicker">${escapeHtml(title)}</p>
+          <p class="eyebrow">${escapeHtml(title)}</p>
           <h1>Регистрация на курс открыта</h1>
           <p>Чтобы получить доступ к курсу, напишите администратору в Telegram.</p>
         </div>
@@ -56,7 +69,7 @@ export function renderExpiredPage({ title }) {
     <main class="state-page">
       <section class="state-card">
         <h1>Доступ закончился</h1>
-        <p>К сожалению, срок действия вашей ссылки истек. Напишите преподавателю, если хотите продлить доступ.</p>
+        <p>Срок действия ссылки истек. Напишите администратору, чтобы получить новую ссылку.</p>
       </section>
     </main>
   `);
@@ -67,7 +80,7 @@ export function renderMissingPage({ title }) {
     <main class="state-page">
       <section class="state-card">
         <h1>Ссылка не найдена</h1>
-        <p>Проверьте адрес страницы или запросите новую ссылку у преподавателя.</p>
+        <p>Проверьте адрес страницы или запросите новую ссылку у администратора.</p>
       </section>
     </main>
   `);

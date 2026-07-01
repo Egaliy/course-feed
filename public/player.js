@@ -28,12 +28,17 @@ document.addEventListener('play', (event) => {
     const audio = message.querySelector('audio');
     const button = message.querySelector('.voice-play');
     if (!audio || !button) return;
-    button.textContent = audio === event.target ? '❚❚' : '▶';
-    button.setAttribute('aria-label', audio === event.target ? 'Поставить на паузу' : 'Воспроизвести голосовое');
+
+    const isCurrent = audio === event.target;
+    button.textContent = isCurrent ? 'Ⅱ' : '▶';
+    button.setAttribute('aria-label', isCurrent ? 'Поставить на паузу' : 'Воспроизвести голосовое');
   });
 }, true);
 
-document.addEventListener('pause', (event) => {
+document.addEventListener('pause', resetVoiceButton, true);
+document.addEventListener('ended', resetVoiceButton, true);
+
+function resetVoiceButton(event) {
   if (!(event.target instanceof HTMLAudioElement)) return;
 
   const message = event.target.closest('.voice-message');
@@ -42,15 +47,4 @@ document.addEventListener('pause', (event) => {
 
   button.textContent = '▶';
   button.setAttribute('aria-label', 'Воспроизвести голосовое');
-}, true);
-
-document.addEventListener('ended', (event) => {
-  if (!(event.target instanceof HTMLAudioElement)) return;
-
-  const message = event.target.closest('.voice-message');
-  const button = message?.querySelector('.voice-play');
-  if (!button) return;
-
-  button.textContent = '▶';
-  button.setAttribute('aria-label', 'Воспроизвести голосовое');
-}, true);
+}
