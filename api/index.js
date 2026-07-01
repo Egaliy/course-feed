@@ -15,7 +15,7 @@ export default async function handler(req, res) {
   const token = getAccessToken(req);
   const access = token ? getAccess(token, state) : null;
   const html = isActiveAccess(access)
-    ? renderFeedPage({ title, posts: getPosts(state), access })
+    ? renderFeedPage({ title, posts: getPosts(state), access, token, view: req.query.view })
     : renderRegistrationPage({ title });
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8');

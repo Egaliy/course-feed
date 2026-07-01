@@ -141,10 +141,20 @@ textarea {
   color: var(--blue);
 }
 
+.content-tabs a[aria-current="page"] {
+  background: var(--blue);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
+}
+
 .content-tabs b {
   color: var(--muted);
   font-size: 12px;
   font-weight: 850;
+}
+
+.content-tabs a[aria-current="page"] b {
+  color: rgba(255, 255, 255, 0.78);
 }
 
 .content-section {

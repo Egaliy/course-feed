@@ -44,7 +44,7 @@ app.get('/', (req, res) => {
     return;
   }
 
-  res.send(renderFeedPage({ title, posts: store.getPosts(), access }));
+  res.send(renderFeedPage({ title, posts: store.getPosts(), access, token, view: req.query.view }));
 });
 
 app.post('/register', async (req, res) => {
@@ -78,7 +78,7 @@ app.get('/a/:token', (req, res) => {
     return;
   }
 
-  res.send(renderFeedPage({ title, posts: store.getPosts(), access }));
+  res.send(renderFeedPage({ title, posts: store.getPosts(), access, token: req.params.token, view: req.query.view }));
 });
 
 app.listen(port, () => {

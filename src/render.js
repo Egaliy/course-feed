@@ -1,7 +1,18 @@
-export function renderFeedPage({ title, posts, access }) {
-  const items = renderPosts(posts);
-  const mediaSections = renderMediaSections(posts);
-  const nav = renderContentNav(posts);
+const views = [
+  { id: 'all', heading: 'Лента', empty: 'Здесь пока нет публикаций.' },
+  { id: 'photo', heading: 'Фото', empty: 'Фото пока нет.' },
+  { id: 'audio', heading: 'Голосовые', empty: 'Голосовых пока нет.' },
+  { id: 'video', heading: 'Видео', empty: 'Видео пока нет.' },
+  { id: 'file', heading: 'Файлы', empty: 'Файлов пока нет.' }
+];
+
+export function renderFeedPage({ title, posts, access, token = '', view = 'all' }) {
+  const activeView = normalizeView(view);
+  const visiblePosts = filterPostsByView(posts, activeView);
+  const items = renderPosts(visiblePosts);
+  const nav = renderContentNav({ posts, activeView, token });
+  const heading = getView(activeView).heading;
+  const empty = getView(activeView).empty;
 
   return page(title, `
     <main class="feed-shell">
@@ -15,21 +26,23 @@ export function renderFeedPage({ title, posts, access }) {
       ${nav}
       <section class="content-section" id="feed">
         <div class="section-heading">
-          <h2>Лента</h2>
+          <h2>${escapeHtml(heading)}</h2>
         </div>
         <div class="feed">
-          ${items || '<article class="empty">Здесь пока нет публикаций.</article>'}
+          ${items || `<article class="empty">${escapeHtml(empty)}</article>`}
         </div>
       </section>
-      ${mediaSections}
     </main>
   `);
 }
 
-export function renderPublicFeedPage({ title, posts }) {
-  const items = renderPosts(posts);
-  const mediaSections = renderMediaSections(posts);
-  const nav = renderContentNav(posts);
+export function renderPublicFeedPage({ title, posts, view = 'all' }) {
+  const activeView = normalizeView(view);
+  const visiblePosts = filterPostsByView(posts, activeView);
+  const items = renderPosts(visiblePosts);
+  const nav = renderContentNav({ posts, activeView });
+  const heading = getView(activeView).heading;
+  const empty = getView(activeView).empty;
 
   return page(title, `
     <main class="feed-shell">
@@ -42,13 +55,12 @@ export function renderPublicFeedPage({ title, posts }) {
       ${nav}
       <section class="content-section" id="feed">
         <div class="section-heading">
-          <h2>Лента</h2>
+          <h2>${escapeHtml(heading)}</h2>
         </div>
         <div class="feed">
-          ${items || '<article class="empty">Здесь пока нет публикаций.</article>'}
+          ${items || `<article class="empty">${escapeHtml(empty)}</article>`}
         </div>
       </section>
-      ${mediaSections}
     </main>
   `);
 }
@@ -119,62 +131,25 @@ function renderDateDivider(label) {
   return `<div class="date-divider"><span>${escapeHtml(label)}</span></div>`;
 }
 
-function renderContentNav(posts) {
+function renderContentNav({ posts, activeView, token = '' }) {
   const counts = getMediaGroups(posts);
   const items = [
-    { href: '#feed', label: 'Лента', count: posts.length },
-    { href: '#photos', label: 'Фото', count: counts.photo.length },
-    { href: '#voices', label: 'Голосовые', count: counts.audio.length },
-    { href: '#videos', label: 'Видео', count: counts.video.length },
-    { href: '#files', label: 'Файлы', count: counts.file.length }
+    { view: 'all', label: 'Лента', count: posts.length },
+    { view: 'photo', label: 'Фото', count: counts.photo.length },
+    { view: 'audio', label: 'Голосовые', count: counts.audio.length },
+    { view: 'video', label: 'Видео', count: counts.video.length },
+    { view: 'file', label: 'Файлы', count: counts.file.length }
   ];
 
   return `
     <nav class="content-tabs" aria-label="Разделы курса">
       ${items.map((item) => `
-        <a href="${item.href}">
+        <a href="${escapeHtml(buildViewHref({ view: item.view, token }))}" ${item.view === activeView ? 'aria-current="page"' : ''}>
           <span>${item.label}</span>
           <b>${item.count}</b>
         </a>
       `).join('')}
     </nav>
-  `;
-}
-
-function renderMediaSections(posts) {
-  const groups = getMediaGroups(posts);
-
-  return [
-    renderMediaSection({ id: 'photos', title: 'Фото', items: groups.photo, empty: 'Фото пока нет.' }),
-    renderMediaSection({ id: 'voices', title: 'Голосовые', items: groups.audio, empty: 'Голосовых пока нет.' }),
-    renderMediaSection({ id: 'videos', title: 'Видео', items: groups.video, empty: 'Видео пока нет.' }),
-    renderMediaSection({ id: 'files', title: 'Файлы', items: groups.file, empty: 'Файлов пока нет.' })
-  ].join('');
-}
-
-function renderMediaSection({ id, title, items, empty }) {
-  return `
-    <section class="content-section" id="${id}">
-      <div class="section-heading">
-        <h2>${title}</h2>
-        <span>${items.length}</span>
-      </div>
-      ${items.length
-        ? `<div class="media-list">${items.map(renderMediaCard).join('')}</div>`
-        : `<article class="empty small-empty">${empty}</article>`}
-    </section>
-  `;
-}
-
-function renderMediaCard(entry) {
-  const caption = entry.post.text ? `<p>${linkify(escapeHtml(entry.post.text))}</p>` : '';
-
-  return `
-    <article class="media-card">
-      ${renderMedia(entry.item)}
-      ${caption}
-      <time datetime="${escapeHtml(entry.post.createdAt)}">${escapeHtml(formatDateTime(entry.post.createdAt))}</time>
-    </article>
   `;
 }
 
@@ -194,6 +169,41 @@ function getMediaGroups(posts) {
   }
 
   return groups;
+}
+
+function filterPostsByView(posts, view) {
+  if (view === 'all') return posts;
+
+  return posts
+    .map((post) => {
+      const media = (post.media || []).filter((item) => getMediaView(item) === view);
+      return media.length ? { ...post, media } : null;
+    })
+    .filter(Boolean);
+}
+
+function getMediaView(item) {
+  if (item.kind === 'photo') return 'photo';
+  if (item.kind === 'audio') return 'audio';
+  if (item.kind === 'video') return 'video';
+  return 'file';
+}
+
+function normalizeView(value) {
+  const view = String(value || 'all').trim();
+  return views.some((item) => item.id === view) ? view : 'all';
+}
+
+function getView(id) {
+  return views.find((item) => item.id === id) || views[0];
+}
+
+function buildViewHref({ view, token }) {
+  const params = new URLSearchParams();
+  if (token) params.set('k', token);
+  if (view !== 'all') params.set('view', view);
+  const query = params.toString();
+  return query ? `/?${query}` : '/';
 }
 
 function renderPost(post) {
