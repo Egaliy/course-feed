@@ -153,24 +153,54 @@ function renderEmptyState(message) {
 }
 
 function renderContentNav({ posts, activeView, token = '' }) {
-  const counts = getMediaGroups(posts);
+  const counts = getViewCounts(posts);
+  const unreadData = posts.map((post) => ({
+    id: post.id,
+    views: getPostViews(post)
+  }));
   const items = [
     { view: 'all', label: 'Лента', count: posts.length },
-    { view: 'photo', label: 'Фото', count: counts.photo.length },
-    { view: 'audio', label: 'Голосовые', count: counts.audio.length },
-    { view: 'video', label: 'Видео', count: counts.video.length },
-    { view: 'file', label: 'Файлы', count: counts.file.length }
+    { view: 'photo', label: 'Фото', count: counts.photo },
+    { view: 'audio', label: 'Голосовые', count: counts.audio },
+    { view: 'video', label: 'Видео', count: counts.video },
+    { view: 'file', label: 'Файлы', count: counts.file }
   ];
 
   return `
-    <nav class="content-tabs" aria-label="Разделы курса">
+    <nav class="content-tabs" aria-label="Разделы курса" data-unread-posts="${escapeHtml(JSON.stringify(unreadData))}">
       ${items.map((item) => `
-        <a href="${escapeHtml(buildViewHref({ view: item.view, token }))}" ${item.view === activeView ? 'aria-current="page"' : ''}>
+        <a href="${escapeHtml(buildViewHref({ view: item.view, token }))}" data-view="${escapeHtml(item.view)}" ${item.view === activeView ? 'aria-current="page"' : ''}>
+          ${renderTabIcon(item.view)}
           <span>${item.label}</span>
           <b>${item.count}</b>
         </a>
       `).join('')}
     </nav>
+  `;
+}
+
+function getViewCounts(posts) {
+  return posts.reduce((counts, post) => {
+    getPostViews(post).forEach((view) => {
+      if (view !== 'all') counts[view] += 1;
+    });
+    return counts;
+  }, { photo: 0, audio: 0, video: 0, file: 0 });
+}
+
+function renderTabIcon(view) {
+  const icons = {
+    all: '<path d="M4 5.5h16M4 12h16M4 18.5h10"></path>',
+    photo: '<rect x="3.5" y="5" width="17" height="14" rx="3"></rect><path d="m7 15 3.2-3.2a1.4 1.4 0 0 1 2 0L16 15.5"></path><path d="m14.5 13.5 1.3-1.3a1.4 1.4 0 0 1 2 0L20.5 15"></path><circle cx="8.5" cy="9.2" r="1.2"></circle>',
+    audio: '<path d="M12 4v16"></path><path d="M8 8v8"></path><path d="M16 8v8"></path><path d="M4 11v2"></path><path d="M20 11v2"></path>',
+    video: '<rect x="3.5" y="6" width="12.5" height="12" rx="3"></rect><path d="m16 10 4.5-2.5v9L16 14"></path>',
+    file: '<path d="M7 3.5h6l4 4V20a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 6 20V5A1.5 1.5 0 0 1 7.5 3.5Z"></path><path d="M13 3.5V8h4"></path><path d="M9 13h6"></path><path d="M9 17h4"></path>'
+  };
+
+  return `
+    <svg class="tab-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      ${icons[view] || icons.all}
+    </svg>
   `;
 }
 
@@ -232,7 +262,7 @@ function renderPost(post) {
   const media = post.media?.length ? `<div class="media-grid">${post.media.map(renderMedia).join('')}</div>` : '';
 
   return `
-    <article class="post">
+    <article class="post" data-post-id="${escapeHtml(post.id)}" data-post-views="${escapeHtml(getPostViews(post).join(','))}">
       <div class="post-body">
         ${text}
         ${media}
@@ -242,6 +272,12 @@ function renderPost(post) {
       </div>
     </article>
   `;
+}
+
+function getPostViews(post) {
+  const views = new Set(['all']);
+  (post.media || []).forEach((item) => views.add(getMediaView(item)));
+  return [...views];
 }
 
 function renderMedia(item) {

@@ -1,50 +1,66 @@
-document.addEventListener('click', async (event) => {
-  const button = event.target.closest('.voice-play');
-  if (!button) return;
-
-  const message = button.closest('.voice-message');
-  const audio = message?.querySelector('audio');
-  if (!audio) return;
-
-  document.querySelectorAll('.voice-message audio').forEach((item) => {
-    if (item !== audio) item.pause();
-  });
-
-  if (audio.paused) {
-    try {
-      await audio.play();
-    } catch {
-      return;
-    }
-  } else {
-    audio.pause();
-  }
-});
-
 document.addEventListener('play', (event) => {
   if (!(event.target instanceof HTMLAudioElement)) return;
 
-  document.querySelectorAll('.voice-message').forEach((message) => {
-    const audio = message.querySelector('audio');
-    const button = message.querySelector('.voice-play');
-    if (!audio || !button) return;
-
-    const isCurrent = audio === event.target;
-    button.textContent = isCurrent ? 'Ⅱ' : '▶';
-    button.setAttribute('aria-label', isCurrent ? 'Поставить на паузу' : 'Воспроизвести голосовое');
+  document.querySelectorAll('.voice-message audio').forEach((audio) => {
+    if (audio !== event.target) audio.pause();
   });
 }, true);
 
-document.addEventListener('pause', resetVoiceButton, true);
-document.addEventListener('ended', resetVoiceButton, true);
+document.addEventListener('DOMContentLoaded', () => {
+  updateUnreadTabs();
+  window.setTimeout(markVisiblePostsRead, 1200);
+});
 
-function resetVoiceButton(event) {
-  if (!(event.target instanceof HTMLAudioElement)) return;
+function updateUnreadTabs() {
+  const nav = document.querySelector('.content-tabs[data-unread-posts]');
+  if (!nav) return;
 
-  const message = event.target.closest('.voice-message');
-  const button = message?.querySelector('.voice-play');
-  if (!button) return;
+  const posts = readUnreadPosts(nav);
+  const readIds = getReadIds();
+  const counts = { all: 0, photo: 0, audio: 0, video: 0, file: 0 };
 
-  button.textContent = '▶';
-  button.setAttribute('aria-label', 'Воспроизвести голосовое');
+  posts.forEach((post) => {
+    if (readIds.has(post.id)) return;
+
+    (post.views || ['all']).forEach((view) => {
+      counts[view] = (counts[view] || 0) + 1;
+    });
+  });
+
+  nav.querySelectorAll('a[data-view]').forEach((link) => {
+    const view = link.dataset.view || 'all';
+    const badge = link.querySelector('b');
+    if (badge) badge.textContent = String(counts[view] || 0);
+  });
+}
+
+function markVisiblePostsRead() {
+  const posts = [...document.querySelectorAll('.post[data-post-id]')];
+  if (!posts.length) return;
+
+  const readIds = getReadIds();
+  posts.forEach((post) => readIds.add(post.dataset.postId));
+  saveReadIds(readIds);
+  updateUnreadTabs();
+}
+
+function readUnreadPosts(nav) {
+  try {
+    const posts = JSON.parse(nav.dataset.unreadPosts || '[]');
+    return Array.isArray(posts) ? posts : [];
+  } catch {
+    return [];
+  }
+}
+
+function getReadIds() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem('courseFeedReadPosts') || '[]'));
+  } catch {
+    return new Set();
+  }
+}
+
+function saveReadIds(readIds) {
+  localStorage.setItem('courseFeedReadPosts', JSON.stringify([...readIds].slice(-600)));
 }

@@ -132,8 +132,8 @@ textarea {
 .content-tabs a {
   display: grid;
   place-items: center;
-  gap: 3px;
-  min-height: 54px;
+  gap: 2px;
+  min-height: 64px;
   padding: 8px 6px;
   border-radius: 12px;
   color: var(--secondary);
@@ -153,14 +153,34 @@ textarea {
   box-shadow: 0 8px 18px rgba(79, 127, 186, 0.24);
 }
 
+.tab-icon {
+  width: 20px;
+  height: 20px;
+  margin-bottom: 1px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.84;
+}
+
 .content-tabs b {
   color: var(--muted);
   font-size: 12px;
   font-weight: 850;
 }
 
+.content-tabs span {
+  line-height: 1.1;
+}
+
 .content-tabs a[aria-current="page"] b {
   color: rgba(255, 255, 255, 0.78);
+}
+
+.content-tabs a[aria-current="page"] .tab-icon {
+  opacity: 1;
 }
 
 .content-section {
@@ -811,8 +831,13 @@ textarea {
   }
 
   .content-tabs a {
-    min-height: 48px;
+    min-height: 58px;
     font-size: 12px;
+  }
+
+  .tab-icon {
+    width: 18px;
+    height: 18px;
   }
 
   .content-section {
