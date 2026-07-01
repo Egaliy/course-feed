@@ -23,13 +23,14 @@ export function renderFeedPage({ title, posts, access, token = '', view = 'all' 
         </div>
         <span class="access-badge">Доступ открыт</span>
       </header>
+      ${renderComfortIntro()}
       ${nav}
       <section class="content-section" id="feed">
         <div class="section-heading">
           <h2>${escapeHtml(heading)}</h2>
         </div>
         <div class="feed">
-          ${items || `<article class="empty">${escapeHtml(empty)}</article>`}
+          ${items || renderEmptyState(empty)}
         </div>
       </section>
     </main>
@@ -58,7 +59,7 @@ export function renderPublicFeedPage({ title, posts, view = 'all' }) {
           <h2>${escapeHtml(heading)}</h2>
         </div>
         <div class="feed">
-          ${items || `<article class="empty">${escapeHtml(empty)}</article>`}
+          ${items || renderEmptyState(empty)}
         </div>
       </section>
     </main>
@@ -84,6 +85,7 @@ export function renderRegistrationPage({ title, state = 'default' }) {
         <div class="register-action">
           <img class="admin-avatar" src="/uploads/borisova.jpg" alt="@BorisovaAleksandraP" loading="lazy">
           <a class="admin-link" href="https://t.me/BorisovaAleksandraP" target="_blank" rel="noreferrer">Написать @BorisovaAleksandraP</a>
+          ${renderComfortTiles()}
         </div>
       </section>
     </main>
@@ -136,6 +138,55 @@ function renderPosts(posts) {
 
 function renderDateDivider(label) {
   return `<div class="date-divider"><span>${escapeHtml(label)}</span></div>`;
+}
+
+function renderComfortIntro() {
+  return `
+    <section class="comfort-panel" aria-label="Пространство курса">
+      <div class="comfort-copy">
+        <p class="eyebrow">мягкое пространство</p>
+        <h2>Материалы курса собраны спокойно и по полочкам</h2>
+        <p>Можно идти в своем темпе: слушать голосовые, возвращаться к фото и сохранять важные файлы без лишнего шума.</p>
+      </div>
+      <div class="comfort-visual" aria-hidden="true">
+        <div class="mood-card mood-card-photo">
+          <img src="/uploads/borisova.jpg" alt="" loading="lazy">
+        </div>
+        <div class="mood-card mood-card-soft">
+          <span>фокус</span>
+          <strong>маленький шаг</strong>
+        </div>
+        <div class="mood-card mood-card-line">
+          <span>опора</span>
+          <strong>я рядом с собой</strong>
+        </div>
+      </div>
+    </section>
+  `;
+}
+
+function renderComfortTiles() {
+  return `
+    <div class="comfort-tiles" aria-hidden="true">
+      <div class="comfort-tile comfort-tile-sage">спокойствие</div>
+      <div class="comfort-tile comfort-tile-sky">ясность</div>
+      <div class="comfort-tile comfort-tile-rose">поддержка</div>
+    </div>
+  `;
+}
+
+function renderEmptyState(message) {
+  return `
+    <article class="empty comfort-empty">
+      <div class="empty-art" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+      <h3>${escapeHtml(message)}</h3>
+      <p>Когда здесь появятся материалы, они лягут в этот раздел аккуратно и без хаоса.</p>
+    </article>
+  `;
 }
 
 function renderContentNav({ posts, activeView, token = '' }) {
