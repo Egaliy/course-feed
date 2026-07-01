@@ -130,7 +130,6 @@ function renderMedia(item) {
   if (item.kind === 'audio') {
     return `
       <div class="voice-message">
-        <button class="voice-play" type="button" aria-label="Воспроизвести голосовое">▶</button>
         <div class="voice-content">
           <div class="voice-title">Голосовое сообщение</div>
           <audio src="${escapeHtml(item.url)}" controls preload="metadata"></audio>

@@ -491,13 +491,12 @@ textarea {
 }
 
 .voice-message {
-  display: flex;
+  display: block;
   grid-column: 1 / -1;
-  align-items: center;
-  gap: 14px;
   width: 100%;
-  padding: 14px;
-  background: var(--surface-soft);
+  padding: 14px 16px 12px;
+  border-radius: 14px;
+  background: #f6f8fb;
 }
 
 .voice-play {
@@ -528,21 +527,23 @@ textarea {
 
 .voice-content {
   min-width: 0;
-  flex: 1;
+  width: 100%;
 }
 
 .voice-title {
-  margin-bottom: 8px;
+  margin: 0 0 9px;
   color: var(--secondary);
   font-size: 14px;
   font-weight: 850;
+  line-height: 1.2;
 }
 
 .voice-content audio {
   display: block;
   width: 100%;
-  min-width: 180px;
-  height: 36px;
+  min-width: 0;
+  height: 38px;
+  border-radius: 999px;
 }
 
 .file-link {
