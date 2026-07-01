@@ -30,6 +30,16 @@ export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir 
     );
   });
 
+  bot.command('expired', async (ctx) => {
+    if (!isAdmin(ctx, adminIds)) return ctx.reply('Нет доступа.');
+
+    const token = createAccessToken({ months: -1, secret: getAccessSecret() });
+    const baseUrl = readPublicBaseUrl(publicBaseUrl);
+    const url = `${baseUrl.replace(/\/$/, '')}/?k=${token}`;
+
+    return ctx.reply(`Тестовая истекшая ссылка:\n${url}`);
+  });
+
   bot.action(/^link:(\d+)$/, async (ctx) => {
     if (!isAdmin(ctx, adminIds)) return ctx.answerCbQuery('Нет доступа.');
 
