@@ -4,7 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Store } from './store.js';
 import { createBot } from './bot.js';
-import { verifyAccessToken } from './access-token.js';
+import { parseAccessToken } from './access-token.js';
 import {
   renderFeedPage,
   renderRegistrationPage,
@@ -39,8 +39,13 @@ app.get('/', (req, res) => {
   }
 
   const access = getAccess(token);
-  if (!isActiveAccess(access)) {
+  if (!access) {
     res.send(renderRegistrationPage({ title }));
+    return;
+  }
+
+  if (!isActiveAccess(access)) {
+    res.send(renderRegistrationPage({ title, state: 'expired' }));
     return;
   }
 
@@ -73,8 +78,13 @@ app.get('/feed', (req, res) => {
 app.get('/a/:token', (req, res) => {
   const access = getAccess(req.params.token);
 
-  if (!isActiveAccess(access)) {
+  if (!access) {
     res.send(renderRegistrationPage({ title }));
+    return;
+  }
+
+  if (!isActiveAccess(access)) {
+    res.send(renderRegistrationPage({ title, state: 'expired' }));
     return;
   }
 
@@ -155,7 +165,7 @@ function getAccessTokenFromQuery(req) {
 }
 
 function getAccess(token) {
-  return verifyAccessToken(token, accessSecret) || store.findAccessLink(token);
+  return parseAccessToken(token, accessSecret) || store.findAccessLink(token);
 }
 
 function isActiveAccess(access) {

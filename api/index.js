@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { verifyAccessToken } from '../src/access-token.js';
+import { parseAccessToken } from '../src/access-token.js';
 import { renderFeedPage, renderRegistrationPage } from '../src/render.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -14,9 +14,9 @@ export default async function handler(req, res) {
   const state = await readState();
   const token = getAccessToken(req);
   const access = token ? getAccess(token, state) : null;
-  const html = isActiveAccess(access)
+  const html = access && isActiveAccess(access)
     ? renderFeedPage({ title, posts: getPosts(state), access, token, view: req.query.view })
-    : renderRegistrationPage({ title });
+    : renderRegistrationPage({ title, state: access ? 'expired' : 'default' });
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.status(200).send(html);
@@ -40,7 +40,7 @@ function getPosts(state) {
 }
 
 function getAccess(token, state) {
-  return verifyAccessToken(token, accessSecret)
+  return parseAccessToken(token, accessSecret)
     || (state.accessLinks || []).find((link) => link.token === token);
 }
 

@@ -65,14 +65,21 @@ export function renderPublicFeedPage({ title, posts, view = 'all' }) {
   `);
 }
 
-export function renderRegistrationPage({ title }) {
-  return page(`Регистрация - ${title}`, `
+export function renderRegistrationPage({ title, state = 'default' }) {
+  const isExpired = state === 'expired';
+  const pageTitle = isExpired ? `Доступ закончился - ${title}` : `Регистрация - ${title}`;
+  const heading = isExpired ? 'Срок доступа закончился' : 'Регистрация на курс открыта';
+  const description = isExpired
+    ? 'Чтобы продлить доступ к курсу, напишите администратору в Telegram.'
+    : 'Чтобы получить доступ к курсу, напишите администратору в Telegram.';
+
+  return page(pageTitle, `
     <main class="register-shell">
       <section class="register-card">
         <div class="register-copy">
           <p class="eyebrow">${escapeHtml(title)}</p>
-          <h1>Регистрация на курс открыта</h1>
-          <p>Чтобы получить доступ к курсу, напишите администратору в Telegram.</p>
+          <h1>${escapeHtml(heading)}</h1>
+          <p>${escapeHtml(description)}</p>
         </div>
         <div class="register-action">
           <img class="admin-avatar" src="/uploads/borisova.jpg" alt="@BorisovaAleksandraP" loading="lazy">

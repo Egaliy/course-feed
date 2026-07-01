@@ -18,6 +18,12 @@ export function createAccessToken({ months, secret }) {
 }
 
 export function verifyAccessToken(token, secret) {
+  const payload = parseAccessToken(token, secret);
+  if (!payload?.expiresAt || new Date(payload.expiresAt) < new Date()) return null;
+  return payload;
+}
+
+export function parseAccessToken(token, secret) {
   const [body, signature] = String(token || '').split('.');
   if (!body || !signature || !timingSafeEqual(signature, sign(body, secret))) {
     return null;
@@ -25,7 +31,6 @@ export function verifyAccessToken(token, secret) {
 
   try {
     const payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
-    if (!payload.expiresAt || new Date(payload.expiresAt) < new Date()) return null;
     return payload;
   } catch {
     return null;
