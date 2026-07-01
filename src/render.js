@@ -1,5 +1,7 @@
 export function renderFeedPage({ title, posts, access }) {
   const items = renderPosts(posts);
+  const mediaSections = renderMediaSections(posts);
+  const nav = renderContentNav(posts);
 
   return page(title, `
     <main class="feed-shell">
@@ -10,15 +12,24 @@ export function renderFeedPage({ title, posts, access }) {
         </div>
         <span class="access-badge">Доступ открыт</span>
       </header>
-      <section class="feed">
-        ${items || '<article class="empty">Здесь пока нет публикаций.</article>'}
+      ${nav}
+      <section class="content-section" id="feed">
+        <div class="section-heading">
+          <h2>Лента</h2>
+        </div>
+        <div class="feed">
+          ${items || '<article class="empty">Здесь пока нет публикаций.</article>'}
+        </div>
       </section>
+      ${mediaSections}
     </main>
   `);
 }
 
 export function renderPublicFeedPage({ title, posts }) {
   const items = renderPosts(posts);
+  const mediaSections = renderMediaSections(posts);
+  const nav = renderContentNav(posts);
 
   return page(title, `
     <main class="feed-shell">
@@ -28,9 +39,16 @@ export function renderPublicFeedPage({ title, posts }) {
           <h1>${escapeHtml(title)}</h1>
         </div>
       </header>
-      <section class="feed">
-        ${items || '<article class="empty">Здесь пока нет публикаций.</article>'}
+      ${nav}
+      <section class="content-section" id="feed">
+        <div class="section-heading">
+          <h2>Лента</h2>
+        </div>
+        <div class="feed">
+          ${items || '<article class="empty">Здесь пока нет публикаций.</article>'}
+        </div>
       </section>
+      ${mediaSections}
     </main>
   `);
 }
@@ -99,6 +117,83 @@ function renderPosts(posts) {
 
 function renderDateDivider(label) {
   return `<div class="date-divider"><span>${escapeHtml(label)}</span></div>`;
+}
+
+function renderContentNav(posts) {
+  const counts = getMediaGroups(posts);
+  const items = [
+    { href: '#feed', label: 'Лента', count: posts.length },
+    { href: '#photos', label: 'Фото', count: counts.photo.length },
+    { href: '#voices', label: 'Голосовые', count: counts.audio.length },
+    { href: '#videos', label: 'Видео', count: counts.video.length },
+    { href: '#files', label: 'Файлы', count: counts.file.length }
+  ];
+
+  return `
+    <nav class="content-tabs" aria-label="Разделы курса">
+      ${items.map((item) => `
+        <a href="${item.href}">
+          <span>${item.label}</span>
+          <b>${item.count}</b>
+        </a>
+      `).join('')}
+    </nav>
+  `;
+}
+
+function renderMediaSections(posts) {
+  const groups = getMediaGroups(posts);
+
+  return [
+    renderMediaSection({ id: 'photos', title: 'Фото', items: groups.photo, empty: 'Фото пока нет.' }),
+    renderMediaSection({ id: 'voices', title: 'Голосовые', items: groups.audio, empty: 'Голосовых пока нет.' }),
+    renderMediaSection({ id: 'videos', title: 'Видео', items: groups.video, empty: 'Видео пока нет.' }),
+    renderMediaSection({ id: 'files', title: 'Файлы', items: groups.file, empty: 'Файлов пока нет.' })
+  ].join('');
+}
+
+function renderMediaSection({ id, title, items, empty }) {
+  return `
+    <section class="content-section" id="${id}">
+      <div class="section-heading">
+        <h2>${title}</h2>
+        <span>${items.length}</span>
+      </div>
+      ${items.length
+        ? `<div class="media-list">${items.map(renderMediaCard).join('')}</div>`
+        : `<article class="empty small-empty">${empty}</article>`}
+    </section>
+  `;
+}
+
+function renderMediaCard(entry) {
+  const caption = entry.post.text ? `<p>${linkify(escapeHtml(entry.post.text))}</p>` : '';
+
+  return `
+    <article class="media-card">
+      ${renderMedia(entry.item)}
+      ${caption}
+      <time datetime="${escapeHtml(entry.post.createdAt)}">${escapeHtml(formatDateTime(entry.post.createdAt))}</time>
+    </article>
+  `;
+}
+
+function getMediaGroups(posts) {
+  const groups = {
+    photo: [],
+    audio: [],
+    video: [],
+    file: []
+  };
+
+  for (const post of posts) {
+    for (const item of post.media || []) {
+      const key = item.kind === 'photo' || item.kind === 'audio' || item.kind === 'video' ? item.kind : 'file';
+      groups[key].push({ post, item });
+    }
+  }
+
+  return groups;
 }
 
 function renderPost(post) {
