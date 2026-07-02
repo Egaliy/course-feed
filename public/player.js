@@ -8,6 +8,7 @@ document.addEventListener('play', (event) => {
 
 document.addEventListener('DOMContentLoaded', () => {
   updateUnreadTabs();
+  updateNewBadges();
   window.setTimeout(markVisiblePostsRead, 1200);
 });
 
@@ -42,6 +43,18 @@ function markVisiblePostsRead() {
   posts.forEach((post) => readIds.add(post.dataset.postId));
   saveReadIds(readIds);
   updateUnreadTabs();
+  updateNewBadges();
+}
+
+function updateNewBadges() {
+  const readIds = getReadIds();
+
+  document.querySelectorAll('.post[data-post-id]').forEach((post) => {
+    const badge = post.querySelector('.new-badge');
+    if (!badge) return;
+
+    badge.hidden = readIds.has(post.dataset.postId);
+  });
 }
 
 function readUnreadPosts(nav) {

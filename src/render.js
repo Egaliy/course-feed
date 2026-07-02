@@ -23,6 +23,7 @@ export function renderFeedPage({ title, posts, access, token = '', view = 'all' 
         </div>
         <span class="access-badge">Доступ открыт</span>
       </header>
+      ${renderAuthorCard()}
       ${nav}
       <section class="content-section" id="feed">
         <div class="section-heading">
@@ -32,6 +33,7 @@ export function renderFeedPage({ title, posts, access, token = '', view = 'all' 
           ${items || renderEmptyState(empty, activeView)}
         </div>
       </section>
+      ${renderContactFooter()}
     </main>
   `);
 }
@@ -52,6 +54,7 @@ export function renderPublicFeedPage({ title, posts, view = 'all' }) {
           <h1>${escapeHtml(title)}</h1>
         </div>
       </header>
+      ${renderAuthorCard()}
       ${nav}
       <section class="content-section" id="feed">
         <div class="section-heading">
@@ -61,6 +64,7 @@ export function renderPublicFeedPage({ title, posts, view = 'all' }) {
           ${items || renderEmptyState(empty, activeView)}
         </div>
       </section>
+      ${renderContactFooter()}
     </main>
   `);
 }
@@ -75,15 +79,15 @@ export function renderRegistrationPage({ title, state = 'default' }) {
 
   return page(pageTitle, `
     <main class="register-shell">
-      <section class="register-card">
+      <section class="register-card ${isExpired ? 'register-card-expired' : ''}">
         <div class="register-copy">
           <p class="eyebrow">${escapeHtml(title)}</p>
           <h1>${escapeHtml(heading)}</h1>
           <p>${escapeHtml(description)}</p>
         </div>
         <div class="register-action">
-          <img class="admin-avatar" src="/uploads/borisova.jpg" alt="@BorisovaAleksandraP" loading="lazy">
-          <a class="admin-link" href="https://t.me/BorisovaAleksandraP" target="_blank" rel="noreferrer">Написать @BorisovaAleksandraP</a>
+          ${isExpired ? renderExpiredIcon() : '<img class="admin-avatar" src="/uploads/borisova.jpg" alt="@BorisovaAleksandraP" loading="lazy">'}
+          <a class="admin-link" href="https://t.me/BorisovaAleksandraP" target="_blank" rel="noreferrer">${isExpired ? 'Продлить доступ' : 'Написать @BorisovaAleksandraP'}</a>
         </div>
       </section>
     </main>
@@ -103,13 +107,28 @@ export function renderRegistrationSuccessPage({ title }) {
 
 export function renderExpiredPage({ title }) {
   return page(title, `
-    <main class="state-page">
-      <section class="state-card">
-        <h1>Доступ закончился</h1>
-        <p>Срок действия ссылки истек. Напишите администратору, чтобы получить новую ссылку.</p>
+    <main class="state-page expired-shell">
+      <section class="state-card expired-card">
+        ${renderExpiredIcon()}
+        <p class="eyebrow">Лента курса</p>
+        <h1>Доступ завершился</h1>
+        <p>Срок действия ссылки истек. Напишите Александре в Telegram, чтобы продлить доступ и получить новую ссылку.</p>
+        <a class="admin-link state-link" href="https://t.me/BorisovaAleksandraP" target="_blank" rel="noreferrer">Продлить доступ</a>
       </section>
     </main>
   `);
+}
+
+function renderExpiredIcon() {
+  return `
+    <div class="expired-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" focusable="false">
+        <path d="M12 6v6l3.5 2"></path>
+        <path d="M20 12a8 8 0 1 1-2.35-5.65"></path>
+        <path d="M20 4v5h-5"></path>
+      </svg>
+    </div>
+  `;
 }
 
 export function renderMissingPage({ title }) {
@@ -136,6 +155,32 @@ function renderPosts(posts) {
 
 function renderDateDivider(label) {
   return `<div class="date-divider"><span>${escapeHtml(label)}</span></div>`;
+}
+
+function renderAuthorCard() {
+  return `
+    <section class="author-card" aria-label="Автор курса">
+      <img class="author-avatar" src="/uploads/borisova.jpg" alt="Александра Борисова" loading="lazy">
+      <div>
+        <p class="eyebrow">Курс ведет</p>
+        <h2>Александра Борисова</h2>
+        <p>Материалы собраны в одном месте, чтобы к ним можно было возвращаться спокойно и в своем темпе.</p>
+      </div>
+      <a class="author-link" href="https://t.me/BorisovaAleksandraP" target="_blank" rel="noreferrer">Написать</a>
+    </section>
+  `;
+}
+
+function renderContactFooter() {
+  return `
+    <section class="contact-footer" aria-label="Связь с автором">
+      <div>
+        <h2>Нужна помощь с доступом?</h2>
+        <p>Напишите Александре, если ссылка не открывается или нужно продлить курс.</p>
+      </div>
+      <a class="admin-link footer-link" href="https://t.me/BorisovaAleksandraP" target="_blank" rel="noreferrer">Написать Александре</a>
+    </section>
+  `;
 }
 
 function renderEmptyState(message, view = 'all') {
@@ -278,6 +323,7 @@ function renderPost(post) {
   return `
     <article class="post" data-post-id="${escapeHtml(post.id)}" data-post-views="${escapeHtml(getPostViews(post).join(','))}">
       <div class="post-body">
+        <span class="new-badge" hidden>Новое</span>
         ${text}
         ${media}
         <div class="post-meta">

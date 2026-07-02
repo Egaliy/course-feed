@@ -107,6 +107,58 @@ textarea {
   white-space: nowrap;
 }
 
+.author-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  margin: 0 0 18px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: var(--shadow-soft);
+}
+
+.author-avatar {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--surface-soft);
+}
+
+.author-card h2 {
+  margin: 0 0 4px;
+  font-size: 19px;
+  line-height: 1.1;
+}
+
+.author-card p:not(.eyebrow) {
+  margin: 0;
+  color: var(--secondary);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.author-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.author-link:hover {
+  background: var(--blue-soft);
+}
+
 .feed {
   display: flex;
   flex-direction: column;
@@ -252,6 +304,12 @@ textarea {
   box-shadow: var(--shadow);
 }
 
+.register-card-expired {
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(247, 229, 229, 0.68)),
+    var(--surface);
+}
+
 .register-copy h1 {
   max-width: 430px;
   margin: 0 0 14px;
@@ -322,6 +380,30 @@ textarea {
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.94);
   box-shadow: var(--shadow-soft);
+}
+
+.post-body {
+  position: relative;
+}
+
+.new-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: var(--green);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.new-badge[hidden] {
+  display: none;
 }
 
 .login-card {
@@ -796,6 +878,74 @@ textarea {
   line-height: 1.55;
 }
 
+.expired-card {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  width: min(480px, 100%);
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.expired-card p {
+  max-width: 360px;
+}
+
+.expired-icon {
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  border-radius: 24px;
+  background: var(--rose);
+  color: #9f4c4c;
+}
+
+.expired-icon svg {
+  width: 42px;
+  height: 42px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.state-link {
+  width: min(320px, 100%);
+  margin-top: 4px;
+}
+
+.contact-footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  margin: 20px 0 0;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--shadow-soft);
+}
+
+.contact-footer h2 {
+  margin: 0 0 5px;
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+.contact-footer p {
+  margin: 0;
+  color: var(--secondary);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.footer-link {
+  width: auto;
+  min-width: 190px;
+}
+
 @media (max-width: 640px) {
   .feed-shell {
     padding: 16px 10px 28px;
@@ -814,6 +964,21 @@ textarea {
 
   .access-badge {
     width: fit-content;
+  }
+
+  .author-card,
+  .contact-footer {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .author-card {
+    gap: 12px;
+  }
+
+  .author-link,
+  .footer-link {
+    width: 100%;
   }
 
   .feed {
