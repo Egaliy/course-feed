@@ -17,6 +17,18 @@ document.addEventListener('click', async (event) => {
     return;
   }
 
+  const videoMenuButton = event.target.closest('.video-menu-button');
+  if (videoMenuButton) {
+    toggleVideoMenu(videoMenuButton);
+    return;
+  }
+
+  const videoSpeedButton = event.target.closest('.video-menu [data-video-speed]');
+  if (videoSpeedButton) {
+    setVideoSpeed(videoSpeedButton);
+    return;
+  }
+
   const menuButton = event.target.closest('.voice-menu-button');
   if (menuButton) {
     toggleVoiceMenu(menuButton);
@@ -31,6 +43,7 @@ document.addEventListener('click', async (event) => {
 
   const button = event.target.closest('.voice-play');
   if (!button) {
+    closeVideoMenus();
     closeVoiceMenus();
     return;
   }
@@ -166,7 +179,13 @@ function setupVideoPlayers() {
     video.addEventListener('timeupdate', () => updateVideoState(video));
     video.addEventListener('pause', () => updateVideoState(video));
     video.addEventListener('ended', () => updateVideoState(video));
+    video.addEventListener('volumechange', () => updateVideoVolume(video));
     updateVideoState(video);
+    updateVideoVolume(video);
+  });
+
+  document.querySelectorAll('.video-volume-slider').forEach((slider) => {
+    slider.addEventListener('input', () => setVideoVolume(slider));
   });
 }
 
@@ -239,6 +258,66 @@ function updateFullscreenButtons() {
     button.classList.toggle('is-active', isActive);
     button.setAttribute('aria-label', isActive ? 'Вернуть видео на страницу' : 'Открыть на весь экран');
   });
+}
+
+function toggleVideoMenu(button) {
+  const wrap = button.closest('.video-menu-wrap');
+  const menu = wrap?.querySelector('.video-menu');
+  if (!menu) return;
+
+  const willOpen = menu.hidden;
+  closeVideoMenus();
+  closeVoiceMenus();
+  menu.hidden = !willOpen;
+  button.setAttribute('aria-expanded', String(willOpen));
+}
+
+function closeVideoMenus() {
+  document.querySelectorAll('.video-menu').forEach((menu) => {
+    menu.hidden = true;
+  });
+  document.querySelectorAll('.video-menu-button[aria-expanded="true"]').forEach((button) => {
+    button.setAttribute('aria-expanded', 'false');
+  });
+}
+
+function setVideoSpeed(button) {
+  const player = button.closest('.video-player');
+  const video = player?.querySelector('video');
+  const speed = Number(button.dataset.videoSpeed);
+  if (!video || !Number.isFinite(speed)) return;
+
+  video.playbackRate = speed;
+  player.querySelectorAll('.video-menu [data-video-speed]').forEach((item) => {
+    item.classList.toggle('is-active', item === button);
+  });
+  closeVideoMenus();
+}
+
+function setVideoVolume(slider) {
+  const player = slider.closest('.video-player');
+  const video = player?.querySelector('video');
+  const value = Number(slider.value);
+  if (!video || !Number.isFinite(value)) return;
+
+  video.volume = Math.min(1, Math.max(0, value));
+  video.muted = video.volume === 0;
+  updateVideoVolume(video);
+}
+
+function updateVideoVolume(video) {
+  const player = video.closest('.video-player');
+  if (!player) return;
+
+  const slider = player.querySelector('.video-volume-slider');
+  const volume = video.muted ? 0 : video.volume;
+  const level = Math.ceil(volume * 5);
+
+  if (slider) {
+    slider.value = String(volume);
+    slider.style.setProperty('--volume', `${volume * 100}%`);
+  }
+  player.dataset.volumeLevel = String(level);
 }
 
 function updateVideoState(video) {

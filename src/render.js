@@ -383,9 +383,29 @@ function renderMedia(item) {
             <span class="video-progress"></span>
           </div>
           <span class="video-time">0:00</span>
-          <button class="video-fullscreen" type="button" aria-label="Открыть на весь экран">
-            <span class="video-fullscreen-icon" aria-hidden="true"></span>
-          </button>
+          <div class="video-actions">
+            <div class="video-volume">
+              <button class="video-volume-button" type="button" aria-label="Громкость">
+                <span class="video-volume-waves" aria-hidden="true">
+                  <i></i><i></i><i></i><i></i><i></i>
+                </span>
+              </button>
+              <input class="video-volume-slider" type="range" min="0" max="1" step="0.05" value="1" aria-label="Громкость видео">
+            </div>
+            <div class="video-menu-wrap">
+              <button class="video-menu-button" type="button" aria-label="Действия с видео" aria-expanded="false">•••</button>
+              <div class="video-menu" hidden>
+                <a href="${escapeHtml(item.url)}" download>Скачать</a>
+                <button class="is-active" type="button" data-video-speed="1">Скорость 1x</button>
+                <button type="button" data-video-speed="1.25">Скорость 1.25x</button>
+                <button type="button" data-video-speed="1.5">Скорость 1.5x</button>
+                <button type="button" data-video-speed="2">Скорость 2x</button>
+              </div>
+            </div>
+            <button class="video-fullscreen" type="button" aria-label="Открыть на весь экран">
+              <span class="video-fullscreen-icon" aria-hidden="true"></span>
+            </button>
+          </div>
         </div>
       </div>
     `;
