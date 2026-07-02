@@ -693,7 +693,7 @@ textarea {
   display: grid;
   gap: 7px;
   margin-top: 0;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid var(--line);
   border-radius: 14px;
   background: #e9edf3;
@@ -880,7 +880,7 @@ textarea {
   color: var(--blue);
 }
 
-.voice-menu-button:focus-visible {
+.voice-menu-button:focus {
   outline: 3px solid rgba(79, 127, 186, 0.22);
   outline-offset: 2px;
 }
@@ -891,8 +891,8 @@ textarea {
 
 .voice-menu {
   position: absolute;
-  right: 0;
-  bottom: calc(100% + 8px);
+  right: calc(100% + 8px);
+  top: 50%;
   z-index: 50;
   width: 172px;
   padding: 6px;
@@ -900,6 +900,7 @@ textarea {
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.98);
   box-shadow: 0 14px 34px rgba(25, 44, 38, 0.16);
+  transform: translateY(-50%);
 }
 
 .voice-menu a,
