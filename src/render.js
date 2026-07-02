@@ -383,7 +383,9 @@ function renderMedia(item) {
             <span class="video-progress"></span>
           </div>
           <span class="video-time">0:00</span>
-          <button class="video-fullscreen" type="button" aria-label="Открыть на весь экран">⛶</button>
+          <button class="video-fullscreen" type="button" aria-label="Открыть на весь экран">
+            <span class="video-fullscreen-icon" aria-hidden="true"></span>
+          </button>
         </div>
       </div>
     `;

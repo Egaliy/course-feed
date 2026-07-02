@@ -237,7 +237,6 @@ function updateFullscreenButtons() {
   document.querySelectorAll('.video-fullscreen').forEach((button) => {
     const isActive = button.closest('.video-player') === activePlayer;
     button.classList.toggle('is-active', isActive);
-    button.textContent = isActive ? '↙' : '⛶';
     button.setAttribute('aria-label', isActive ? 'Вернуть видео на страницу' : 'Открыть на весь экран');
   });
 }
