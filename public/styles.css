@@ -658,6 +658,7 @@ textarea {
   min-width: 0;
   padding: 18px;
   border-radius: 16px;
+  overflow: visible;
 }
 
 .post-text {
@@ -727,6 +728,8 @@ textarea {
 }
 
 .media-card {
+  position: relative;
+  overflow: visible;
   min-width: 0;
   padding: 12px;
   border: 1px solid var(--line);
@@ -766,6 +769,8 @@ textarea {
 }
 
 .voice-message {
+  position: relative;
+  z-index: 2;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -823,7 +828,8 @@ textarea {
   font-size: 12px;
   font-weight: 760;
   line-height: 1;
-  transform: translateY(-13px);
+  align-self: flex-start;
+  margin-top: 13px;
 }
 
 .voice-track {
@@ -861,7 +867,7 @@ textarea {
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.78);
   color: var(--secondary);
-  font-size: 18px;
+  font-size: 14px;
   font-weight: 850;
   line-height: 1;
   cursor: pointer;
@@ -874,6 +880,11 @@ textarea {
   color: var(--blue);
 }
 
+.voice-menu-button:focus-visible {
+  outline: 3px solid rgba(79, 127, 186, 0.22);
+  outline-offset: 2px;
+}
+
 .voice-menu-button:active {
   transform: scale(0.96);
 }
@@ -881,8 +892,8 @@ textarea {
 .voice-menu {
   position: absolute;
   right: 0;
-  top: calc(100% + 8px);
-  z-index: 20;
+  bottom: calc(100% + 8px);
+  z-index: 50;
   width: 172px;
   padding: 6px;
   border: 1px solid var(--line);

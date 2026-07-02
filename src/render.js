@@ -390,7 +390,7 @@ function renderMedia(item) {
         </div>
         <span class="voice-time">0:00</span>
         <div class="voice-menu-wrap">
-          <button class="voice-menu-button" type="button" aria-label="Действия с голосовым" aria-expanded="false">...</button>
+          <button class="voice-menu-button" type="button" aria-label="Действия с голосовым" aria-expanded="false">•••</button>
           <div class="voice-menu" hidden>
             <a href="${escapeHtml(item.url)}" download>Скачать</a>
             <button class="is-active" type="button" data-speed="1">Скорость 1x</button>
