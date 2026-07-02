@@ -109,7 +109,7 @@ textarea {
 
 .author-card {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 14px;
   margin: 0 0 18px;
@@ -139,24 +139,6 @@ textarea {
   color: var(--secondary);
   font-size: 14px;
   line-height: 1.45;
-}
-
-.author-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 38px;
-  padding: 0 14px;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--surface-soft);
-  color: var(--text);
-  font-size: 13px;
-  font-weight: 850;
-}
-
-.author-link:hover {
-  background: var(--blue-soft);
 }
 
 .feed {
@@ -218,9 +200,21 @@ textarea {
 }
 
 .content-tabs b {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
   color: var(--muted);
   font-size: 12px;
   font-weight: 850;
+}
+
+.content-tabs b.has-unread {
+  background: rgba(71, 117, 98, 0.12);
+  color: var(--green);
 }
 
 .content-tabs span {
@@ -229,6 +223,11 @@ textarea {
 
 .content-tabs a[aria-current="page"] b {
   color: rgba(255, 255, 255, 0.78);
+}
+
+.content-tabs a[aria-current="page"] b.has-unread {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
 }
 
 .content-tabs a[aria-current="page"] .tab-icon {
@@ -917,15 +916,26 @@ textarea {
 
 .contact-footer {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 16px;
-  margin: 20px 0 0;
-  padding: 18px;
+  margin: 22px 0 0;
+  padding: 18px 20px;
   border: 1px solid var(--line);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: var(--shadow-soft);
+  border-radius: 22px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(237, 245, 251, 0.84)),
+    var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.contact-avatar {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--surface-soft);
+  box-shadow: 0 10px 26px rgba(31, 47, 42, 0.12);
 }
 
 .contact-footer h2 {
@@ -941,9 +951,14 @@ textarea {
   line-height: 1.45;
 }
 
+.contact-copy .eyebrow {
+  margin-bottom: 5px;
+}
+
 .footer-link {
   width: auto;
   min-width: 190px;
+  border-radius: 16px;
 }
 
 @media (max-width: 640px) {
@@ -976,9 +991,13 @@ textarea {
     gap: 12px;
   }
 
-  .author-link,
   .footer-link {
     width: 100%;
+  }
+
+  .contact-avatar {
+    width: 58px;
+    height: 58px;
   }
 
   .feed {

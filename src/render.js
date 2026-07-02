@@ -166,7 +166,6 @@ function renderAuthorCard() {
         <h2>Александра Борисова</h2>
         <p>Материалы собраны в одном месте, чтобы к ним можно было возвращаться спокойно и в своем темпе.</p>
       </div>
-      <a class="author-link" href="https://t.me/BorisovaAleksandraP" target="_blank" rel="noreferrer">Написать</a>
     </section>
   `;
 }
@@ -174,7 +173,9 @@ function renderAuthorCard() {
 function renderContactFooter() {
   return `
     <section class="contact-footer" aria-label="Связь с автором">
-      <div>
+      <img class="contact-avatar" src="/uploads/borisova.jpg" alt="Александра Борисова" loading="lazy">
+      <div class="contact-copy">
+        <p class="eyebrow">Связь с автором</p>
         <h2>Нужна помощь с доступом?</h2>
         <p>Напишите Александре, если ссылка не открывается или нужно продлить курс.</p>
       </div>

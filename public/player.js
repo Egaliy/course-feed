@@ -9,8 +9,12 @@ document.addEventListener('play', (event) => {
 document.addEventListener('DOMContentLoaded', () => {
   updateUnreadTabs();
   updateNewBadges();
-  window.setTimeout(markVisiblePostsRead, 1200);
+  document.querySelectorAll('.content-tabs a').forEach((link) => {
+    link.addEventListener('click', markVisiblePostsRead);
+  });
 });
+
+window.addEventListener('beforeunload', markVisiblePostsRead);
 
 function updateUnreadTabs() {
   const nav = document.querySelector('.content-tabs[data-unread-posts]');
@@ -31,7 +35,12 @@ function updateUnreadTabs() {
   nav.querySelectorAll('a[data-view]').forEach((link) => {
     const view = link.dataset.view || 'all';
     const badge = link.querySelector('b');
-    if (badge) badge.textContent = String(counts[view] || 0);
+    const count = counts[view] || 0;
+
+    if (badge) {
+      badge.textContent = String(count);
+      badge.classList.toggle('has-unread', count > 0);
+    }
   });
 }
 
@@ -43,7 +52,6 @@ function markVisiblePostsRead() {
   posts.forEach((post) => readIds.add(post.dataset.postId));
   saveReadIds(readIds);
   updateUnreadTabs();
-  updateNewBadges();
 }
 
 function updateNewBadges() {
