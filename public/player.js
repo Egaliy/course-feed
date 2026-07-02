@@ -1,6 +1,21 @@
 document.addEventListener('click', async (event) => {
+  const menuButton = event.target.closest('.voice-menu-button');
+  if (menuButton) {
+    toggleVoiceMenu(menuButton);
+    return;
+  }
+
+  const speedButton = event.target.closest('.voice-menu [data-speed]');
+  if (speedButton) {
+    setVoiceSpeed(speedButton);
+    return;
+  }
+
   const button = event.target.closest('.voice-play');
-  if (!button) return;
+  if (!button) {
+    closeVoiceMenus();
+    return;
+  }
 
   const message = button.closest('.voice-message');
   const audio = message?.querySelector('audio');
@@ -115,6 +130,39 @@ function setupVoicePlayers() {
     audio.addEventListener('ended', () => updateVoiceState(audio));
     updateVoiceState(audio);
   });
+}
+
+function toggleVoiceMenu(button) {
+  const wrap = button.closest('.voice-menu-wrap');
+  const menu = wrap?.querySelector('.voice-menu');
+  if (!menu) return;
+
+  const willOpen = menu.hidden;
+  closeVoiceMenus();
+  menu.hidden = !willOpen;
+  button.setAttribute('aria-expanded', String(willOpen));
+}
+
+function closeVoiceMenus() {
+  document.querySelectorAll('.voice-menu').forEach((menu) => {
+    menu.hidden = true;
+  });
+  document.querySelectorAll('.voice-menu-button[aria-expanded="true"]').forEach((button) => {
+    button.setAttribute('aria-expanded', 'false');
+  });
+}
+
+function setVoiceSpeed(button) {
+  const message = button.closest('.voice-message');
+  const audio = message?.querySelector('audio');
+  const speed = Number(button.dataset.speed);
+  if (!audio || !Number.isFinite(speed)) return;
+
+  audio.playbackRate = speed;
+  message.querySelectorAll('.voice-menu [data-speed]').forEach((item) => {
+    item.classList.toggle('is-active', item === button);
+  });
+  closeVoiceMenus();
 }
 
 function updateVoiceState(audio) {

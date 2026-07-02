@@ -847,26 +847,73 @@ textarea {
   display: none;
 }
 
-.voice-download {
+.voice-menu-wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.voice-menu-button {
   display: grid;
   place-items: center;
-  flex: 0 0 auto;
   width: 34px;
   height: 34px;
   border: 1px solid rgba(79, 127, 186, 0.18);
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.78);
-  color: var(--blue);
+  color: var(--secondary);
   font-size: 18px;
   font-weight: 850;
   line-height: 1;
-  text-decoration: none;
-  transition: background 0.18s ease, transform 0.18s ease;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
 }
 
-.voice-download:hover {
+.voice-menu-button:hover,
+.voice-menu-button[aria-expanded="true"] {
   background: #fff;
-  transform: translateY(-1px);
+  color: var(--blue);
+}
+
+.voice-menu-button:active {
+  transform: scale(0.96);
+}
+
+.voice-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 20;
+  width: 172px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 14px 34px rgba(25, 44, 38, 0.16);
+}
+
+.voice-menu a,
+.voice-menu button {
+  display: block;
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--secondary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 760;
+  line-height: 1.2;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.voice-menu a:hover,
+.voice-menu button:hover,
+.voice-menu button.is-active {
+  background: rgba(79, 127, 186, 0.12);
+  color: var(--blue);
 }
 
 .file-link {

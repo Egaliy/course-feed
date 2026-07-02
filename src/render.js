@@ -389,7 +389,15 @@ function renderMedia(item) {
           <audio src="${escapeHtml(item.url)}" preload="metadata"></audio>
         </div>
         <span class="voice-time">0:00</span>
-        <a class="voice-download" href="${escapeHtml(item.url)}" download aria-label="Скачать голосовое">↓</a>
+        <div class="voice-menu-wrap">
+          <button class="voice-menu-button" type="button" aria-label="Действия с голосовым" aria-expanded="false">...</button>
+          <div class="voice-menu" hidden>
+            <a href="${escapeHtml(item.url)}" download>Скачать</a>
+            <button class="is-active" type="button" data-speed="1">Скорость 1x</button>
+            <button type="button" data-speed="1.5">Скорость 1.5x</button>
+            <button type="button" data-speed="2">Скорость 2x</button>
+          </div>
+        </div>
       </div>
     `;
   }
