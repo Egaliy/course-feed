@@ -141,6 +141,41 @@ textarea {
   line-height: 1.45;
 }
 
+.course-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: -8px 0 18px;
+}
+
+.course-stats div {
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 8px 22px rgba(31, 47, 42, 0.04);
+}
+
+.course-stats span {
+  display: block;
+  margin-bottom: 3px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.1;
+}
+
+.course-stats strong {
+  display: block;
+  color: var(--text);
+  font-size: 18px;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .feed {
   display: flex;
   flex-direction: column;
@@ -805,7 +840,7 @@ textarea {
 }
 
 .empty {
-  margin: 10vh auto 0;
+  margin: 18px auto 0;
   padding: 24px;
   color: var(--muted);
 }
@@ -987,6 +1022,25 @@ textarea {
 
   .author-card {
     gap: 12px;
+  }
+
+  .course-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    margin: -4px 0 16px;
+  }
+
+  .course-stats div {
+    padding: 10px 8px;
+    border-radius: 12px;
+  }
+
+  .course-stats span {
+    font-size: 11px;
+  }
+
+  .course-stats strong {
+    font-size: 15px;
   }
 
   .footer-link {

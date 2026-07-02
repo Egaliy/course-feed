@@ -24,6 +24,7 @@ export function renderFeedPage({ title, posts, access, token = '', view = 'all' 
         <span class="access-badge">Доступ открыт</span>
       </header>
       ${renderAuthorCard()}
+      ${renderCourseStats(posts)}
       ${nav}
       <section class="content-section" id="feed">
         <div class="section-heading">
@@ -55,6 +56,7 @@ export function renderPublicFeedPage({ title, posts, view = 'all' }) {
         </div>
       </header>
       ${renderAuthorCard()}
+      ${renderCourseStats(posts)}
       ${nav}
       <section class="content-section" id="feed">
         <div class="section-heading">
@@ -184,12 +186,35 @@ function renderContactFooter() {
   `;
 }
 
+function renderCourseStats(posts) {
+  const mediaCount = posts.reduce((total, post) => total + (post.media?.length || 0), 0);
+  const latestPost = posts[0];
+  const updated = latestPost ? `${formatDay(latestPost.createdAt)} ${formatDateTime(latestPost.createdAt)}` : 'нет';
+
+  return `
+    <section class="course-stats" aria-label="Сводка курса">
+      <div>
+        <span>Публикаций</span>
+        <strong>${posts.length}</strong>
+      </div>
+      <div>
+        <span>Медиа</span>
+        <strong>${mediaCount}</strong>
+      </div>
+      <div>
+        <span>Обновлено</span>
+        <strong>${escapeHtml(updated)}</strong>
+      </div>
+    </section>
+  `;
+}
+
 function renderEmptyState(message, view = 'all') {
   return `
     <article class="empty comfort-empty">
       ${renderEmptyIcon(view)}
       <h3>${escapeHtml(message)}</h3>
-      <p>Когда здесь появятся материалы, они лягут в этот раздел аккуратно и без хаоса.</p>
+      <p>Материалы появятся здесь после публикации.</p>
     </article>
   `;
 }
