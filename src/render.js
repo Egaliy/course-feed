@@ -29,7 +29,7 @@ export function renderFeedPage({ title, posts, access, token = '', view = 'all' 
           <h2>${escapeHtml(heading)}</h2>
         </div>
         <div class="feed">
-          ${items || renderEmptyState(empty)}
+          ${items || renderEmptyState(empty, activeView)}
         </div>
       </section>
     </main>
@@ -58,7 +58,7 @@ export function renderPublicFeedPage({ title, posts, view = 'all' }) {
           <h2>${escapeHtml(heading)}</h2>
         </div>
         <div class="feed">
-          ${items || renderEmptyState(empty)}
+          ${items || renderEmptyState(empty, activeView)}
         </div>
       </section>
     </main>
@@ -138,17 +138,31 @@ function renderDateDivider(label) {
   return `<div class="date-divider"><span>${escapeHtml(label)}</span></div>`;
 }
 
-function renderEmptyState(message) {
+function renderEmptyState(message, view = 'all') {
   return `
     <article class="empty comfort-empty">
-      <div class="empty-art" aria-hidden="true">
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
+      ${renderEmptyIcon(view)}
       <h3>${escapeHtml(message)}</h3>
       <p>Когда здесь появятся материалы, они лягут в этот раздел аккуратно и без хаоса.</p>
     </article>
+  `;
+}
+
+function renderEmptyIcon(view) {
+  const icons = {
+    all: '<path d="M7 7.5h10"></path><path d="M7 12h10"></path><path d="M7 16.5h6"></path>',
+    photo: '<rect x="5" y="7" width="14" height="11" rx="2.4"></rect><path d="m7.5 15 3-3a1.2 1.2 0 0 1 1.7 0l3.8 4"></path><path d="m14.5 14 1.1-1.1a1.2 1.2 0 0 1 1.7 0l1.8 2"></path><circle cx="9.5" cy="10.3" r="1"></circle>',
+    audio: '<path d="M12 5v14"></path><path d="M8.5 8.5v7"></path><path d="M15.5 8.5v7"></path><path d="M5.5 11v2"></path><path d="M18.5 11v2"></path>',
+    video: '<rect x="5" y="7" width="10.5" height="10" rx="2.4"></rect><path d="m15.5 10.5 3.5-2v7l-3.5-2"></path>',
+    file: '<path d="M8 4.5h5.2L17 8.3V19a1.5 1.5 0 0 1-1.5 1.5h-7A1.5 1.5 0 0 1 7 19V6A1.5 1.5 0 0 1 8.5 4.5Z"></path><path d="M13 4.8V9h4"></path><path d="M9.5 13.5h5"></path><path d="M9.5 17h3.2"></path>'
+  };
+
+  return `
+    <div class="empty-art" aria-hidden="true">
+      <svg viewBox="0 0 24 24" focusable="false">
+        ${icons[view] || icons.all}
+      </svg>
+    </div>
   `;
 }
 
