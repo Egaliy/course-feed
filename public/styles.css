@@ -213,7 +213,7 @@ textarea {
 }
 
 .content-tabs b.has-unread {
-  color: var(--green);
+  color: var(--blue);
 }
 
 .content-tabs span {
