@@ -176,7 +176,7 @@ function updateVoiceState(audio) {
   const duration = Number.isFinite(audio.duration) ? audio.duration : 0;
   const percent = duration > 0 ? Math.min(100, (audio.currentTime / duration) * 100) : 0;
 
-  if (icon) icon.textContent = audio.paused ? '▶' : 'Ⅱ';
+  if (button) button.classList.toggle('is-playing', !audio.paused);
   if (button) button.setAttribute('aria-label', audio.paused ? 'Воспроизвести голосовое' : 'Поставить на паузу');
   if (time) time.textContent = formatVoiceTime(audio.paused && audio.currentTime === 0 ? duration : audio.currentTime);
   if (progress) progress.style.width = `${percent}%`;

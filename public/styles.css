@@ -795,10 +795,46 @@ textarea {
   color: #fff;
   cursor: pointer;
   font-family: inherit;
-  font-size: 18px;
   line-height: 1;
-  padding-left: 2px;
+  padding: 0;
   transition: transform 140ms ease, background 140ms ease;
+}
+
+.voice-play-icon {
+  display: block;
+  width: 0;
+  height: 0;
+  margin-left: 3px;
+  border-top: 9px solid transparent;
+  border-bottom: 9px solid transparent;
+  border-left: 14px solid #fff;
+}
+
+.voice-play.is-playing .voice-play-icon {
+  position: relative;
+  width: 14px;
+  height: 18px;
+  margin-left: 0;
+  border: 0;
+}
+
+.voice-play.is-playing .voice-play-icon::before,
+.voice-play.is-playing .voice-play-icon::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 5px;
+  height: 18px;
+  border-radius: 2px;
+  background: #fff;
+}
+
+.voice-play.is-playing .voice-play-icon::before {
+  left: 0;
+}
+
+.voice-play.is-playing .voice-play-icon::after {
+  right: 0;
 }
 
 .voice-play:hover {

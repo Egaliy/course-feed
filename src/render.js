@@ -379,7 +379,7 @@ function renderMedia(item) {
     return `
       <div class="voice-message">
         <button class="voice-play" type="button" aria-label="Воспроизвести голосовое">
-          <span class="voice-play-icon">▶</span>
+          <span class="voice-play-icon" aria-hidden="true"></span>
         </button>
         <div class="voice-content">
           <div class="voice-title">Голосовое сообщение</div>
