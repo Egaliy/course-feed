@@ -750,7 +750,8 @@ textarea {
 
 .video-player {
   grid-column: 1 / -1;
-  overflow: hidden;
+  position: relative;
+  overflow: visible;
   border-radius: 16px;
   background:
     linear-gradient(135deg, rgba(250, 252, 251, 0.98), rgba(239, 246, 251, 0.9)),
@@ -763,6 +764,7 @@ textarea {
   width: 100%;
   height: auto;
   max-height: min(76vh, 720px);
+  border-radius: 16px 16px 0 0;
   object-fit: contain;
   background: #111917;
 }
