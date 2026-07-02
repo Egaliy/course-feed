@@ -213,7 +213,6 @@ textarea {
 }
 
 .content-tabs b.has-unread {
-  background: rgba(71, 117, 98, 0.12);
   color: var(--green);
 }
 
@@ -226,7 +225,6 @@ textarea {
 }
 
 .content-tabs a[aria-current="page"] b.has-unread {
-  background: rgba(255, 255, 255, 0.2);
   color: #fff;
 }
 

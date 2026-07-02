@@ -164,7 +164,7 @@ function renderAuthorCard() {
       <div>
         <p class="eyebrow">Курс ведет</p>
         <h2>Александра Борисова</h2>
-        <p>Материалы собраны в одном месте, чтобы к ним можно было возвращаться спокойно и в своем темпе.</p>
+        <p>Материалы курса собраны в одном месте для удобного доступа.</p>
       </div>
     </section>
   `;
@@ -177,7 +177,7 @@ function renderContactFooter() {
       <div class="contact-copy">
         <p class="eyebrow">Связь с автором</p>
         <h2>Нужна помощь с доступом?</h2>
-        <p>Напишите Александре, если ссылка не открывается или нужно продлить курс.</p>
+        <p>Напишите Александре, если нужно продлить курс.</p>
       </div>
       <a class="admin-link footer-link" href="https://t.me/BorisovaAleksandraP" target="_blank" rel="noreferrer">Написать Александре</a>
     </section>
