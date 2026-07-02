@@ -708,7 +708,7 @@ textarea {
 }
 
 .media-grid img,
-.media-grid video {
+.media-grid > video {
   display: block;
   width: 100%;
   max-height: 520px;
@@ -739,13 +739,160 @@ textarea {
 }
 
 .media-card img,
-.media-card video {
+.media-card > video {
   display: block;
   width: 100%;
   max-height: 360px;
   border-radius: 12px;
   object-fit: cover;
   background: #e9edf3;
+}
+
+.video-player {
+  grid-column: 1 / -1;
+  overflow: hidden;
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(250, 252, 251, 0.98), rgba(239, 246, 251, 0.9)),
+    #f5f8f7;
+  box-shadow: inset 0 0 0 1px rgba(79, 127, 186, 0.16);
+}
+
+.video-player video {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: min(76vh, 720px);
+  object-fit: contain;
+  background: #111917;
+}
+
+.video-controls {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto 38px;
+  align-items: center;
+  gap: 11px;
+  padding: 10px 12px 12px;
+}
+
+.video-play,
+.video-fullscreen {
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.video-play {
+  width: 42px;
+  height: 42px;
+  background: var(--blue);
+  color: #fff;
+}
+
+.video-play:hover {
+  background: var(--blue-hover);
+}
+
+.video-play:active,
+.video-fullscreen:active {
+  transform: scale(0.96);
+}
+
+.video-play-icon {
+  display: block;
+  width: 0;
+  height: 0;
+  margin-left: 3px;
+  border-top: 8px solid transparent;
+  border-bottom: 8px solid transparent;
+  border-left: 12px solid #fff;
+}
+
+.video-play.is-playing .video-play-icon {
+  position: relative;
+  width: 13px;
+  height: 16px;
+  margin-left: 0;
+  border: 0;
+}
+
+.video-play.is-playing .video-play-icon::before,
+.video-play.is-playing .video-play-icon::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 5px;
+  height: 16px;
+  border-radius: 2px;
+  background: #fff;
+}
+
+.video-play.is-playing .video-play-icon::before {
+  left: 0;
+}
+
+.video-play.is-playing .video-play-icon::after {
+  right: 0;
+}
+
+.video-timeline {
+  position: relative;
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(79, 127, 186, 0.16);
+  cursor: pointer;
+}
+
+.video-progress {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--blue);
+}
+
+.video-time {
+  min-width: 36px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 760;
+  text-align: right;
+}
+
+.video-fullscreen {
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(79, 127, 186, 0.18);
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--secondary);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.video-fullscreen:hover {
+  background: #fff;
+  color: var(--blue);
+}
+
+.video-player:fullscreen {
+  display: grid;
+  align-content: center;
+  width: 100vw;
+  height: 100vh;
+  border-radius: 0;
+  background: #111917;
+}
+
+.video-player:fullscreen video {
+  max-height: calc(100vh - 72px);
+}
+
+.video-player:fullscreen .video-controls {
+  background: rgba(245, 248, 247, 0.96);
 }
 
 .media-card .voice-message,

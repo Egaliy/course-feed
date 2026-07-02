@@ -372,7 +372,21 @@ function renderMedia(item) {
   }
 
   if (item.kind === 'video') {
-    return `<video src="${escapeHtml(item.url)}" controls preload="metadata"></video>`;
+    return `
+      <div class="video-player">
+        <video src="${escapeHtml(item.url)}" preload="metadata" playsinline></video>
+        <div class="video-controls">
+          <button class="video-play" type="button" aria-label="Воспроизвести видео">
+            <span class="video-play-icon" aria-hidden="true"></span>
+          </button>
+          <div class="video-timeline" role="slider" aria-label="Прогресс видео" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+            <span class="video-progress"></span>
+          </div>
+          <span class="video-time">0:00</span>
+          <button class="video-fullscreen" type="button" aria-label="Открыть на весь экран">⛶</button>
+        </div>
+      </div>
+    `;
   }
 
   if (item.kind === 'audio') {

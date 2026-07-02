@@ -1,4 +1,22 @@
 document.addEventListener('click', async (event) => {
+  const videoPlay = event.target.closest('.video-play');
+  if (videoPlay) {
+    await toggleVideo(videoPlay);
+    return;
+  }
+
+  const videoTimeline = event.target.closest('.video-timeline');
+  if (videoTimeline) {
+    seekVideo(videoTimeline, event);
+    return;
+  }
+
+  const videoFullscreen = event.target.closest('.video-fullscreen');
+  if (videoFullscreen) {
+    await openVideoFullscreen(videoFullscreen);
+    return;
+  }
+
   const menuButton = event.target.closest('.voice-menu-button');
   if (menuButton) {
     toggleVoiceMenu(menuButton);
@@ -37,12 +55,19 @@ document.addEventListener('click', async (event) => {
 });
 
 document.addEventListener('play', (event) => {
-  if (!(event.target instanceof HTMLAudioElement)) return;
-  updateVoiceState(event.target);
+  if (event.target instanceof HTMLAudioElement) {
+    updateVoiceState(event.target);
+    return;
+  }
+
+  if (event.target instanceof HTMLVideoElement) {
+    updateVideoState(event.target);
+  }
 }, true);
 
 document.addEventListener('DOMContentLoaded', () => {
   setupVoicePlayers();
+  setupVideoPlayers();
   updateUnreadTabs();
   updateNewBadges();
   document.querySelectorAll('.content-tabs a').forEach((link) => {
@@ -130,6 +155,79 @@ function setupVoicePlayers() {
     audio.addEventListener('ended', () => updateVoiceState(audio));
     updateVoiceState(audio);
   });
+}
+
+function setupVideoPlayers() {
+  document.querySelectorAll('.video-player video').forEach((video) => {
+    video.addEventListener('loadedmetadata', () => updateVideoState(video));
+    video.addEventListener('timeupdate', () => updateVideoState(video));
+    video.addEventListener('pause', () => updateVideoState(video));
+    video.addEventListener('ended', () => updateVideoState(video));
+    updateVideoState(video);
+  });
+}
+
+async function toggleVideo(button) {
+  const player = button.closest('.video-player');
+  const video = player?.querySelector('video');
+  if (!video) return;
+
+  document.querySelectorAll('.video-player video').forEach((item) => {
+    if (item !== video) item.pause();
+  });
+  document.querySelectorAll('.voice-message audio').forEach((audio) => audio.pause());
+
+  if (video.paused) {
+    try {
+      await video.play();
+    } catch {
+      return;
+    }
+  } else {
+    video.pause();
+  }
+}
+
+function seekVideo(timeline, event) {
+  const player = timeline.closest('.video-player');
+  const video = player?.querySelector('video');
+  if (!video || !Number.isFinite(video.duration) || video.duration <= 0) return;
+
+  const rect = timeline.getBoundingClientRect();
+  const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+  video.currentTime = video.duration * ratio;
+  updateVideoState(video);
+}
+
+async function openVideoFullscreen(button) {
+  const player = button.closest('.video-player');
+  if (!player?.requestFullscreen) return;
+
+  try {
+    await player.requestFullscreen();
+  } catch {
+    return;
+  }
+}
+
+function updateVideoState(video) {
+  const player = video.closest('.video-player');
+  if (!player) return;
+
+  const button = player.querySelector('.video-play');
+  const time = player.querySelector('.video-time');
+  const progress = player.querySelector('.video-progress');
+  const timeline = player.querySelector('.video-timeline');
+  const duration = Number.isFinite(video.duration) ? video.duration : 0;
+  const percent = duration > 0 ? Math.min(100, (video.currentTime / duration) * 100) : 0;
+
+  if (button) {
+    button.classList.toggle('is-playing', !video.paused);
+    button.setAttribute('aria-label', video.paused ? 'Воспроизвести видео' : 'Поставить видео на паузу');
+  }
+  if (time) time.textContent = formatVoiceTime(video.paused && video.currentTime === 0 ? duration : video.currentTime);
+  if (progress) progress.style.width = `${percent}%`;
+  if (timeline) timeline.setAttribute('aria-valuenow', String(Math.round(percent)));
 }
 
 function toggleVoiceMenu(button) {
