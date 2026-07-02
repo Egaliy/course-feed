@@ -178,8 +178,8 @@ function renderContactFooter() {
       <img class="contact-avatar" src="/uploads/borisova.jpg" alt="Александра Борисова" loading="lazy">
       <div class="contact-copy">
         <p class="eyebrow">Связь с автором</p>
-        <h2>Нужна помощь с доступом?</h2>
-        <p>Напишите Александре, если нужно продлить курс.</p>
+        <h2>Нужна помощь?</h2>
+        <p>По вопросам курса можно написать Александре.</p>
       </div>
       <a class="admin-link footer-link" href="https://t.me/BorisovaAleksandraP" target="_blank" rel="noreferrer">Написать Александре</a>
     </section>
@@ -378,9 +378,18 @@ function renderMedia(item) {
   if (item.kind === 'audio') {
     return `
       <div class="voice-message">
+        <button class="voice-play" type="button" aria-label="Воспроизвести голосовое">
+          <span class="voice-play-icon">▶</span>
+        </button>
         <div class="voice-content">
-          <div class="voice-title">Голосовое сообщение</div>
-          <audio src="${escapeHtml(item.url)}" controls preload="metadata"></audio>
+          <div class="voice-row">
+            <div class="voice-title">Голосовое сообщение</div>
+            <span class="voice-time">0:00</span>
+          </div>
+          <div class="voice-track" aria-hidden="true">
+            <span class="voice-progress"></span>
+          </div>
+          <audio src="${escapeHtml(item.url)}" preload="metadata"></audio>
         </div>
       </div>
     `;

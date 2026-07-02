@@ -1,12 +1,33 @@
+document.addEventListener('click', async (event) => {
+  const button = event.target.closest('.voice-play');
+  if (!button) return;
+
+  const message = button.closest('.voice-message');
+  const audio = message?.querySelector('audio');
+  if (!audio) return;
+
+  document.querySelectorAll('.voice-message audio').forEach((item) => {
+    if (item !== audio) item.pause();
+  });
+
+  if (audio.paused) {
+    try {
+      await audio.play();
+    } catch {
+      return;
+    }
+  } else {
+    audio.pause();
+  }
+});
+
 document.addEventListener('play', (event) => {
   if (!(event.target instanceof HTMLAudioElement)) return;
-
-  document.querySelectorAll('.voice-message audio').forEach((audio) => {
-    if (audio !== event.target) audio.pause();
-  });
+  updateVoiceState(event.target);
 }, true);
 
 document.addEventListener('DOMContentLoaded', () => {
+  setupVoicePlayers();
   updateUnreadTabs();
   updateNewBadges();
   document.querySelectorAll('.content-tabs a').forEach((link) => {
@@ -84,4 +105,39 @@ function getReadIds() {
 
 function saveReadIds(readIds) {
   localStorage.setItem('courseFeedReadPosts', JSON.stringify([...readIds].slice(-600)));
+}
+
+function setupVoicePlayers() {
+  document.querySelectorAll('.voice-message audio').forEach((audio) => {
+    audio.addEventListener('loadedmetadata', () => updateVoiceState(audio));
+    audio.addEventListener('timeupdate', () => updateVoiceState(audio));
+    audio.addEventListener('pause', () => updateVoiceState(audio));
+    audio.addEventListener('ended', () => updateVoiceState(audio));
+    updateVoiceState(audio);
+  });
+}
+
+function updateVoiceState(audio) {
+  const message = audio.closest('.voice-message');
+  if (!message) return;
+
+  const button = message.querySelector('.voice-play');
+  const icon = message.querySelector('.voice-play-icon');
+  const time = message.querySelector('.voice-time');
+  const progress = message.querySelector('.voice-progress');
+  const duration = Number.isFinite(audio.duration) ? audio.duration : 0;
+  const percent = duration > 0 ? Math.min(100, (audio.currentTime / duration) * 100) : 0;
+
+  if (icon) icon.textContent = audio.paused ? '▶' : 'Ⅱ';
+  if (button) button.setAttribute('aria-label', audio.paused ? 'Воспроизвести голосовое' : 'Поставить на паузу');
+  if (time) time.textContent = formatVoiceTime(audio.paused && audio.currentTime === 0 ? duration : audio.currentTime);
+  if (progress) progress.style.width = `${percent}%`;
+}
+
+function formatVoiceTime(value) {
+  if (!Number.isFinite(value) || value <= 0) return '0:00';
+
+  const minutes = Math.floor(value / 60);
+  const seconds = Math.floor(value % 60).toString().padStart(2, '0');
+  return `${minutes}:${seconds}`;
 }

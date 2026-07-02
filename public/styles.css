@@ -171,6 +171,7 @@ textarea {
   color: var(--text);
   font-size: 18px;
   line-height: 1.1;
+  font-weight: 750;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -765,12 +766,15 @@ textarea {
 }
 
 .voice-message {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 13px;
   grid-column: 1 / -1;
   width: 100%;
-  padding: 14px 16px 12px;
+  padding: 14px;
+  border: 1px solid var(--line);
   border-radius: 14px;
-  background: var(--surface-soft);
+  background: linear-gradient(135deg, rgba(244, 248, 246, 0.96), rgba(237, 245, 251, 0.84));
 }
 
 .voice-play {
@@ -804,20 +808,48 @@ textarea {
   width: 100%;
 }
 
+.voice-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
 .voice-title {
-  margin: 0 0 9px;
+  margin: 0;
   color: var(--secondary);
   font-size: 14px;
   font-weight: 850;
   line-height: 1.2;
 }
 
-.voice-content audio {
-  display: block;
+.voice-time {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.voice-track {
+  position: relative;
+  height: 8px;
   width: 100%;
-  min-width: 0;
-  height: 38px;
+  overflow: hidden;
   border-radius: 999px;
+  background: rgba(79, 127, 186, 0.16);
+}
+
+.voice-progress {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--blue);
+}
+
+.voice-content audio {
+  display: none;
 }
 
 .file-link {
