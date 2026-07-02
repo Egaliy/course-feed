@@ -768,21 +768,22 @@ textarea {
 .voice-message {
   display: flex;
   align-items: center;
-  gap: 13px;
+  gap: 12px;
   grid-column: 1 / -1;
   width: 100%;
-  padding: 14px;
+  min-height: 74px;
+  padding: 10px 12px;
   border: 1px solid var(--line);
-  border-radius: 14px;
-  background: linear-gradient(135deg, rgba(244, 248, 246, 0.96), rgba(237, 245, 251, 0.84));
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(250, 252, 251, 0.98), rgba(239, 246, 251, 0.9));
 }
 
 .voice-play {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   border: 0;
   border-radius: 50%;
   background: var(--blue);
@@ -808,19 +809,11 @@ textarea {
   width: 100%;
 }
 
-.voice-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
-}
-
 .voice-title {
-  margin: 0;
+  margin: 0 0 8px;
   color: var(--secondary);
   font-size: 14px;
-  font-weight: 850;
+  font-weight: 760;
   line-height: 1.2;
 }
 
@@ -828,12 +821,14 @@ textarea {
   flex: 0 0 auto;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 760;
+  line-height: 1;
+  transform: translateY(-13px);
 }
 
 .voice-track {
   position: relative;
-  height: 8px;
+  height: 7px;
   width: 100%;
   overflow: hidden;
   border-radius: 999px;
@@ -850,6 +845,28 @@ textarea {
 
 .voice-content audio {
   display: none;
+}
+
+.voice-download {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border: 1px solid rgba(79, 127, 186, 0.18);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--blue);
+  font-size: 18px;
+  font-weight: 850;
+  line-height: 1;
+  text-decoration: none;
+  transition: background 0.18s ease, transform 0.18s ease;
+}
+
+.voice-download:hover {
+  background: #fff;
+  transform: translateY(-1px);
 }
 
 .file-link {

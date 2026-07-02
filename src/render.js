@@ -382,15 +382,14 @@ function renderMedia(item) {
           <span class="voice-play-icon">▶</span>
         </button>
         <div class="voice-content">
-          <div class="voice-row">
-            <div class="voice-title">Голосовое сообщение</div>
-            <span class="voice-time">0:00</span>
-          </div>
+          <div class="voice-title">Голосовое сообщение</div>
           <div class="voice-track" aria-hidden="true">
             <span class="voice-progress"></span>
           </div>
           <audio src="${escapeHtml(item.url)}" preload="metadata"></audio>
         </div>
+        <span class="voice-time">0:00</span>
+        <a class="voice-download" href="${escapeHtml(item.url)}" download aria-label="Скачать голосовое">↓</a>
       </div>
     `;
   }
