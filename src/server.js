@@ -4,6 +4,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Store } from './store.js';
 import { createBot } from './bot.js';
+import { createMaxBot } from './max-bot.js';
 import { parseAccessToken } from './access-token.js';
 import {
   renderFeedPage,
@@ -19,8 +20,11 @@ const uploadDir = path.join(publicDir, 'uploads');
 const port = Number(process.env.PORT || 3000);
 const title = process.env.COURSE_TITLE || 'Лента курса';
 const botToken = process.env.BOT_TOKEN;
+const maxBotToken = process.env.MAX_BOT_TOKEN;
 const publicBaseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${port}`;
 const adminIds = (process.env.ADMIN_IDS || '').split(',').map((id) => id.trim()).filter(Boolean);
+const maxAdminIds = (process.env.MAX_ADMIN_IDS || process.env.ADMIN_IDS || '').split(',').map((id) => id.trim()).filter(Boolean);
+const maxApiBase = process.env.MAX_API_BASE || undefined;
 const accessSecret = process.env.ACCESS_TOKEN_SECRET || 'course-feed-access-v1';
 
 const store = new Store(path.join(rootDir, 'data', 'db.json'));
@@ -111,6 +115,25 @@ if (!botToken || !adminIds.length) {
 
   process.once('SIGINT', () => bot.stop('SIGINT'));
   process.once('SIGTERM', () => bot.stop('SIGTERM'));
+}
+
+if (!maxBotToken || !maxAdminIds.length) {
+  console.warn('MAX_BOT_TOKEN or MAX_ADMIN_IDS is missing. Site started without MAX bot.');
+} else {
+  const maxBot = createMaxBot({
+    botToken: maxBotToken,
+    adminIds: maxAdminIds,
+    publicBaseUrl,
+    apiBase: maxApiBase
+  });
+
+  void maxBot.start().catch((error) => {
+    console.error('MAX bot failed to start.');
+    console.error(error);
+  });
+
+  process.once('SIGINT', () => maxBot.stop());
+  process.once('SIGTERM', () => maxBot.stop());
 }
 
 async function notifyAdminsAboutRegistration({ botToken, adminIds, registration }) {
