@@ -878,6 +878,11 @@ textarea {
   color: var(--blue);
 }
 
+.video-fullscreen.is-active {
+  background: var(--blue);
+  color: #fff;
+}
+
 .video-player:fullscreen {
   display: grid;
   align-content: center;

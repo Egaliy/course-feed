@@ -75,6 +75,9 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+document.addEventListener('fullscreenchange', updateFullscreenButtons);
+document.addEventListener('webkitfullscreenchange', updateFullscreenButtons);
+
 window.addEventListener('beforeunload', markVisiblePostsRead);
 
 function updateUnreadTabs() {
@@ -201,13 +204,42 @@ function seekVideo(timeline, event) {
 
 async function openVideoFullscreen(button) {
   const player = button.closest('.video-player');
-  if (!player?.requestFullscreen) return;
+  const video = player?.querySelector('video');
+  if (!player || !video) return;
 
   try {
-    await player.requestFullscreen();
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      if (document.exitFullscreen) {
+        await document.exitFullscreen();
+      } else if (document.webkitExitFullscreen) {
+        await document.webkitExitFullscreen();
+      }
+      return;
+    }
+
+    if (player.requestFullscreen) {
+      await player.requestFullscreen();
+    } else if (player.webkitRequestFullscreen) {
+      await player.webkitRequestFullscreen();
+    } else if (video.webkitEnterFullscreen) {
+      video.webkitEnterFullscreen();
+    }
   } catch {
     return;
   }
+}
+
+function updateFullscreenButtons() {
+  const activePlayer = document.fullscreenElement?.closest?.('.video-player')
+    || document.webkitFullscreenElement?.closest?.('.video-player')
+    || null;
+
+  document.querySelectorAll('.video-fullscreen').forEach((button) => {
+    const isActive = button.closest('.video-player') === activePlayer;
+    button.classList.toggle('is-active', isActive);
+    button.textContent = isActive ? '↙' : '⛶';
+    button.setAttribute('aria-label', isActive ? 'Вернуть видео на страницу' : 'Открыть на весь экран');
+  });
 }
 
 function updateVideoState(video) {
