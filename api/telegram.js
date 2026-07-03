@@ -1,5 +1,5 @@
 import { createAccessToken } from '../src/access-token.js';
-import { addBlobPost, hasBlobStorage, uploadTelegramFileToBlob } from '../src/blob-storage.js';
+import { addBlobPost, createBlobAccessLink, hasBlobStorage, uploadTelegramFileToBlob } from '../src/blob-storage.js';
 import { extractMedia, extractText } from '../src/media.js';
 
 const durations = [
@@ -137,7 +137,7 @@ async function handleCallback({ callback, botToken }) {
   if (!match) return;
 
   const months = Number(match[1]);
-  const url = createAccessUrl(months);
+  const url = await createAccessUrl(months);
 
   await answerCallback({ botToken, callbackId: callback.id, text: 'Ссылка создана' });
   await deleteMessage({ botToken, chatId, messageId: callback.message.message_id });
@@ -148,9 +148,15 @@ async function handleCallback({ callback, botToken }) {
   });
 }
 
-function createAccessUrl(months) {
-  const token = createAccessToken({ months, secret: getAccessSecret() });
+async function createAccessUrl(months) {
   const baseUrl = (process.env.PUBLIC_BASE_URL || 'https://course-feed.vercel.app').replace(/\/$/, '');
+
+  if (hasBlobStorage()) {
+    const link = await createBlobAccessLink(months);
+    return `${baseUrl}/a/${link.token}`;
+  }
+
+  const token = createAccessToken({ months, secret: getAccessSecret() });
   return `${baseUrl}/?k=${token}`;
 }
 

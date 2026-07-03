@@ -60,6 +60,31 @@ export async function addBlobPost(input) {
   return post;
 }
 
+export async function createBlobAccessLink(months) {
+  const state = await readBlobState();
+  const now = new Date();
+  const expiresAt = new Date(now);
+  expiresAt.setMonth(expiresAt.getMonth() + months);
+
+  let token = '';
+  const existingTokens = new Set((state.accessLinks || []).map((link) => link.token));
+
+  do {
+    token = crypto.randomBytes(7).toString('base64url');
+  } while (existingTokens.has(token));
+
+  const link = {
+    token,
+    createdAt: now.toISOString(),
+    expiresAt: expiresAt.toISOString(),
+    months
+  };
+
+  state.accessLinks.push(link);
+  await writeBlobState(state);
+  return link;
+}
+
 export async function uploadTelegramFileToBlob({ botToken, fileId, name }) {
   if (!hasBlobStorage()) {
     throw new Error('BLOB_READ_WRITE_TOKEN is missing');
