@@ -6,7 +6,7 @@ import { renderFeedPage, renderRegistrationPage } from '../src/render.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..');
-const title = process.env.COURSE_TITLE || 'Лента курса';
+const title = getTitle();
 const accessSecret = process.env.ACCESS_TOKEN_SECRET || 'course-feed-access-v1';
 const dbPath = path.join(rootDir, 'data', 'db.json');
 
@@ -46,4 +46,12 @@ function getAccess(token, state) {
 
 function isActiveAccess(access) {
   return Boolean(access) && new Date(access.expiresAt) >= new Date();
+}
+
+function getTitle() {
+  const value = String(process.env.COURSE_TITLE || '').trim();
+  if (!value || value.includes('?') || value.includes('Р')) {
+    return 'Лента курса';
+  }
+  return value;
 }

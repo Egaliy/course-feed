@@ -17,7 +17,7 @@ const publicDir = path.join(rootDir, 'public');
 const uploadDir = path.join(publicDir, 'uploads');
 
 const port = Number(process.env.PORT || 3000);
-const title = process.env.COURSE_TITLE || 'Лента курса';
+const title = getTitle();
 const botToken = process.env.BOT_TOKEN;
 const publicBaseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${port}`;
 const adminIds = (process.env.ADMIN_IDS || '').split(',').map((id) => id.trim()).filter(Boolean);
@@ -94,6 +94,14 @@ app.get('/a/:token', (req, res) => {
 app.listen(port, () => {
   console.log(`Site is running on http://localhost:${port}`);
 });
+
+function getTitle() {
+  const value = String(process.env.COURSE_TITLE || '').trim();
+  if (!value || value.includes('?') || value.includes('Р')) {
+    return 'Лента курса';
+  }
+  return value;
+}
 
 if (!botToken || !adminIds.length) {
   console.warn('BOT_TOKEN or ADMIN_IDS is missing. Site started without Telegram bot.');
