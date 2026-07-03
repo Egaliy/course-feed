@@ -100,6 +100,13 @@ if (!botToken || !adminIds.length) {
 } else {
   const bot = createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir });
   const me = await bot.telegram.getMe();
+  try {
+    await bot.telegram.setMyCommands([
+      { command: 'link', description: 'Создать ссылку доступа' }
+    ]);
+  } catch (error) {
+    console.warn('Could not update Telegram bot commands:', error.message);
+  }
   console.log(`Telegram bot @${me.username || me.first_name} is reachable. Starting polling...`);
 
   void bot.launch()

@@ -1,4 +1,10 @@
 document.addEventListener('click', async (event) => {
+  const fileAction = event.target.closest('[data-file-action]');
+  if (fileAction) {
+    markFileDownloaded(fileAction);
+    return;
+  }
+
   const videoPlay = event.target.closest('.video-play');
   if (videoPlay) {
     await toggleVideo(videoPlay);
@@ -81,6 +87,7 @@ document.addEventListener('play', (event) => {
 document.addEventListener('DOMContentLoaded', () => {
   setupVoicePlayers();
   setupVideoPlayers();
+  setupFileCards();
   updateUnreadTabs();
   updateNewBadges();
   document.querySelectorAll('.content-tabs a').forEach((link) => {
@@ -92,6 +99,68 @@ document.addEventListener('fullscreenchange', updateFullscreenButtons);
 document.addEventListener('webkitfullscreenchange', updateFullscreenButtons);
 
 window.addEventListener('beforeunload', markVisiblePostsRead);
+
+function setupFileCards() {
+  document.querySelectorAll('.file-card[data-file-url]').forEach((card) => {
+    updateFileCard(card, isFileDownloaded(card.dataset.fileUrl));
+  });
+}
+
+function markFileDownloaded(action) {
+  const card = action.closest('.file-card[data-file-url]');
+  if (!card) return;
+
+  const files = getDownloadedFiles();
+  const wasDownloaded = files.has(card.dataset.fileUrl);
+  files.add(card.dataset.fileUrl);
+  saveDownloadedFiles(files);
+
+  if (wasDownloaded) {
+    updateFileCard(card, true);
+    return;
+  }
+
+  setTimeout(() => updateFileCard(card, true), 0);
+}
+
+function updateFileCard(card, downloaded) {
+  const action = card.querySelector('[data-file-action]');
+  const text = card.querySelector('.file-action-text');
+  const status = card.querySelector('[data-file-status]');
+  if (!action) return;
+
+  card.classList.toggle('is-downloaded', downloaded);
+  action.setAttribute('aria-label', downloaded ? 'Открыть файл' : 'Скачать файл');
+
+  if (downloaded) {
+    action.removeAttribute('download');
+    action.setAttribute('target', '_blank');
+    action.setAttribute('rel', 'noreferrer');
+  } else {
+    action.setAttribute('download', '');
+    action.removeAttribute('target');
+    action.removeAttribute('rel');
+  }
+
+  if (text) text.textContent = downloaded ? 'Открыть' : 'Скачать';
+  if (status) status.textContent = downloaded ? 'Файл уже скачан в этом браузере' : 'Файл можно скачать на устройство';
+}
+
+function isFileDownloaded(url) {
+  return getDownloadedFiles().has(url);
+}
+
+function getDownloadedFiles() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem('courseFeedDownloadedFiles') || '[]'));
+  } catch {
+    return new Set();
+  }
+}
+
+function saveDownloadedFiles(files) {
+  localStorage.setItem('courseFeedDownloadedFiles', JSON.stringify([...files].slice(-300)));
+}
 
 function updateUnreadTabs() {
   const nav = document.querySelector('.content-tabs[data-unread-posts]');

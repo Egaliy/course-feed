@@ -438,7 +438,27 @@ function renderMedia(item) {
     `;
   }
 
-  return `<a class="file-link" href="${escapeHtml(item.url)}" download>${escapeHtml(item.name || 'Скачать файл')}</a>`;
+  const fileName = item.name || 'Скачать файл';
+
+  return `
+    <article class="file-card" data-file-url="${escapeHtml(item.url)}">
+      <a class="file-action" href="${escapeHtml(item.url)}" download data-file-action aria-label="Скачать файл">
+        <span class="file-action-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path class="file-icon-download" d="M12 4v10m0 0 4-4m-4 4-4-4"></path>
+            <path class="file-icon-download" d="M5 19h14"></path>
+            <path class="file-icon-open" d="M7 17 17 7"></path>
+            <path class="file-icon-open" d="M9 7h8v8"></path>
+          </svg>
+        </span>
+        <span class="file-action-text">Скачать</span>
+      </a>
+      <div class="file-info">
+        <strong>${escapeHtml(fileName)}</strong>
+        <span data-file-status>Файл можно скачать на устройство</span>
+      </div>
+    </article>
+  `;
 }
 
 function page(title, body) {

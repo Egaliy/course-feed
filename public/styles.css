@@ -1103,7 +1103,7 @@ textarea {
 }
 
 .media-card .voice-message,
-.media-card .file-link {
+.media-card .file-card {
   margin: 0;
 }
 
@@ -1318,16 +1318,109 @@ textarea {
   color: var(--blue);
 }
 
-.file-link {
-  display: block;
+.file-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
   grid-column: 1 / -1;
   padding: 14px;
   border: 1px solid var(--line);
-  border-radius: 13px;
-  background: var(--surface-soft);
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(250, 252, 251, 0.98), rgba(239, 246, 251, 0.9)),
+    var(--surface-soft);
   color: var(--text);
-  font-size: 14px;
-  font-weight: 750;
+  box-shadow: inset 0 0 0 1px rgba(79, 127, 186, 0.08);
+}
+
+.file-action {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--blue), #6d98cf);
+  color: #fff;
+  text-decoration: none;
+  box-shadow: 0 10px 22px rgba(79, 127, 186, 0.22);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.file-action:hover {
+  background: var(--blue-hover);
+  box-shadow: 0 12px 26px rgba(79, 127, 186, 0.28);
+}
+
+.file-action:active {
+  transform: scale(0.96);
+}
+
+.file-action-icon {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+}
+
+.file-action-icon svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.file-action-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.file-icon-open {
+  display: none;
+}
+
+.file-card.is-downloaded .file-action {
+  background: #fff;
+  color: var(--blue);
+  box-shadow: inset 0 0 0 1px rgba(79, 127, 186, 0.18), 0 8px 18px rgba(25, 44, 38, 0.06);
+}
+
+.file-card.is-downloaded .file-icon-download {
+  display: none;
+}
+
+.file-card.is-downloaded .file-icon-open {
+  display: block;
+}
+
+.file-info {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.file-info strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 760;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-info span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.3;
 }
 
 .empty,

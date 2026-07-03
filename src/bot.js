@@ -16,28 +16,20 @@ export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir 
   const albumBuffers = new Map();
   const authorCache = new Map();
 
-  bot.start((ctx) => {
-    if (!isAdmin(ctx, adminIds)) return ctx.reply('Нет доступа.');
-    return ctx.reply('Готов публиковать посты. Отправьте текст, фото, видео или аудио. Для ссылки ученику используйте /link.');
+  bot.start(async (ctx) => {
+    await deleteCommandMessage(ctx);
+    if (!isAdmin(ctx, adminIds)) return replyTemporary(ctx, 'Нет доступа.');
+    return replyTemporary(ctx, 'Готов публиковать посты. Отправьте текст, фото, видео или аудио. Для ссылки ученику используйте /link.', undefined, 18000);
   });
 
   bot.command('link', async (ctx) => {
-    if (!isAdmin(ctx, adminIds)) return ctx.reply('Нет доступа.');
+    await deleteCommandMessage(ctx);
+    if (!isAdmin(ctx, adminIds)) return replyTemporary(ctx, 'Нет доступа.');
 
     return ctx.reply(
       'На какой срок выдать доступ ученику?',
       Markup.inlineKeyboard(durations.map((item) => Markup.button.callback(item.label, `link:${item.months}`)))
     );
-  });
-
-  bot.command('expired', async (ctx) => {
-    if (!isAdmin(ctx, adminIds)) return ctx.reply('Нет доступа.');
-
-    const token = createAccessToken({ months: -1, secret: getAccessSecret() });
-    const baseUrl = readPublicBaseUrl(publicBaseUrl);
-    const url = `${baseUrl.replace(/\/$/, '')}/?k=${token}`;
-
-    return ctx.reply(`Тестовая истекшая ссылка:\n${url}`);
   });
 
   bot.action(/^link:(\d+)$/, async (ctx) => {
@@ -49,6 +41,7 @@ export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir 
     const url = `${baseUrl.replace(/\/$/, '')}/?k=${token}`;
 
     await ctx.answerCbQuery('Ссылка создана');
+    await ctx.deleteMessage().catch(() => {});
     return ctx.reply(`Ссылка-доступ на ${monthsText(months)}:\n${url}`);
   });
 
@@ -64,14 +57,34 @@ export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir 
     try {
       const author = await getAuthor({ ctx, botToken, uploadDir, authorCache });
       await publishMessage({ message: ctx.message, botToken, store, uploadDir, author });
-      await ctx.reply('Опубликовано.');
+      await replyTemporary(ctx, 'Опубликовано.');
     } catch (error) {
       console.error(error);
-      await ctx.reply('Не получилось опубликовать. Проверьте размер файла и попробуйте еще раз.');
+      await replyTemporary(ctx, 'Не получилось опубликовать. Проверьте размер файла и попробуйте еще раз.', undefined, 14000);
     }
   });
 
   return bot;
+}
+
+async function replyTemporary(ctx, text, extra, ttl = 8000) {
+  const message = await ctx.reply(text, extra);
+  deleteMessageLater(ctx, message, ttl);
+  return message;
+}
+
+function deleteMessageLater(ctx, message, ttl) {
+  const chatId = message.chat?.id;
+  const messageId = message.message_id;
+  if (!chatId || !messageId) return;
+
+  setTimeout(() => {
+    ctx.telegram.deleteMessage(chatId, messageId).catch(() => {});
+  }, ttl);
+}
+
+function deleteCommandMessage(ctx) {
+  return ctx.deleteMessage().catch(() => {});
 }
 
 function isAdmin(ctx, adminIds) {
@@ -111,10 +124,16 @@ async function publishAlbum({ ctx, botToken, store, uploadDir, albumBuffers, aut
     }
 
     await store.addPost({ text, media, author });
-    await ctx.telegram.sendMessage(album.chatId, 'Альбом опубликован.');
+    const message = await ctx.telegram.sendMessage(album.chatId, 'Альбом опубликован.');
+    setTimeout(() => {
+      ctx.telegram.deleteMessage(album.chatId, message.message_id).catch(() => {});
+    }, 8000);
   } catch (error) {
     console.error(error);
-    await ctx.telegram.sendMessage(album.chatId, 'Не получилось опубликовать альбом. Проверьте размер файлов.');
+    const message = await ctx.telegram.sendMessage(album.chatId, 'Не получилось опубликовать альбом. Проверьте размер файлов.');
+    setTimeout(() => {
+      ctx.telegram.deleteMessage(album.chatId, message.message_id).catch(() => {});
+    }, 14000);
   }
 }
 
