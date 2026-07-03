@@ -118,7 +118,6 @@ async function publishMessage({ message, botToken, chatId }) {
   if (!text && !media.length) return;
 
   await addBlobPost({ text, media });
-  await deleteMessage({ botToken, chatId, messageId: message.message_id });
   await sendMessage({ botToken, chatId, text: 'Опубликовано.' });
 }
 

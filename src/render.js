@@ -336,10 +336,20 @@ function getView(id) {
 
 function buildViewHref({ view, token }) {
   const params = new URLSearchParams();
-  if (token) params.set('k', token);
   if (view !== 'all') params.set('view', view);
   const query = params.toString();
-  return query ? `/?${query}` : '/';
+
+  if (token && isShortAccessToken(token)) {
+    return query ? `/a/${encodeURIComponent(token)}?${query}` : `/a/${encodeURIComponent(token)}`;
+  }
+
+  if (token) params.set('k', token);
+  const fallbackQuery = params.toString();
+  return fallbackQuery ? `/?${fallbackQuery}` : '/';
+}
+
+function isShortAccessToken(token) {
+  return /^[A-Za-z0-9_-]{6,32}$/.test(String(token || ''));
 }
 
 function renderPost(post) {
