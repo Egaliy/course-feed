@@ -24,7 +24,9 @@ export async function readBlobState() {
     const result = await get(dbPathname, { access: 'public' });
     if (!result?.stream) return structuredClone(defaultState);
 
-    const raw = await streamToString(result.stream);
+    const raw = result.blob?.url
+      ? await fetchFreshBlobJson(result.blob.url)
+      : await streamToString(result.stream);
     return normalizeState(JSON.parse(raw));
   } catch (error) {
     if (isMissingBlobError(error)) return structuredClone(defaultState);
@@ -145,6 +147,22 @@ async function streamToString(stream) {
   }
 
   return Buffer.concat(chunks).toString('utf8');
+}
+
+async function fetchFreshBlobJson(url) {
+  const freshUrl = `${url}${url.includes('?') ? '&' : '?'}v=${Date.now()}`;
+  const response = await fetch(freshUrl, {
+    cache: 'no-store',
+    headers: {
+      'cache-control': 'no-cache'
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Blob db fetch failed: ${response.status}`);
+  }
+
+  return response.text();
 }
 
 function isMissingBlobError(error) {
