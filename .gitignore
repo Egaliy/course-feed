@@ -7,3 +7,5 @@ public/uploads/*
 !public/uploads/.gitkeep
 !public/uploads/borisova.jpg
 .vercel
+
+.env*

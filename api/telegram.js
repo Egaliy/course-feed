@@ -1,4 +1,6 @@
 import { createAccessToken } from '../src/access-token.js';
+import { addBlobPost, hasBlobStorage, uploadTelegramFileToBlob } from '../src/blob-storage.js';
+import { extractMedia, extractText } from '../src/media.js';
 
 const durations = [
   { label: '1 месяц', months: 1 },
@@ -65,7 +67,7 @@ async function handleUpdate({ update, botToken }) {
     await sendMessage({
       botToken,
       chatId,
-      text: 'Бот работает на Vercel. Для создания ссылки нажмите /link.'
+      text: 'Бот работает на Vercel. Отправьте текст, фото, видео, голосовое или файл для публикации. Для ссылки ученику используйте /link.'
     });
     return;
   }
@@ -88,11 +90,36 @@ async function handleUpdate({ update, botToken }) {
 
   if (text.startsWith('/')) return;
 
-  await sendMessage({
-    botToken,
-    chatId,
-    text: 'Сейчас бот на Vercel создает ссылки доступа. Публикации материалов требуют отдельного постоянного хранилища.'
-  });
+  await publishMessage({ message, botToken, chatId });
+}
+
+async function publishMessage({ message, botToken, chatId }) {
+  if (!hasBlobStorage()) {
+    await sendMessage({
+      botToken,
+      chatId,
+      text: 'Хранилище Vercel Blob еще не подключено. Добавьте BLOB_READ_WRITE_TOKEN в переменные Vercel.'
+    });
+    return;
+  }
+
+  const media = [];
+
+  for (const item of extractMedia(message)) {
+    const file = await uploadTelegramFileToBlob({
+      botToken,
+      fileId: item.fileId,
+      name: item.name
+    });
+    media.push({ ...item, ...file });
+  }
+
+  const text = extractText(message);
+  if (!text && !media.length) return;
+
+  await addBlobPost({ text, media });
+  await deleteMessage({ botToken, chatId, messageId: message.message_id });
+  await sendMessage({ botToken, chatId, text: 'Опубликовано.' });
 }
 
 async function handleCallback({ callback, botToken }) {
@@ -128,26 +155,38 @@ function createAccessUrl(months) {
 }
 
 async function sendMessage({ botToken, chatId, text, replyMarkup }) {
-  return telegramRequest({ botToken, method: 'sendMessage', body: {
-    chat_id: chatId,
-    text,
-    reply_markup: replyMarkup
-  }});
+  return telegramRequest({
+    botToken,
+    method: 'sendMessage',
+    body: {
+      chat_id: chatId,
+      text,
+      reply_markup: replyMarkup
+    }
+  });
 }
 
 async function deleteMessage({ botToken, chatId, messageId }) {
   if (!messageId) return;
-  await telegramRequest({ botToken, method: 'deleteMessage', body: {
-    chat_id: chatId,
-    message_id: messageId
-  }}).catch(() => {});
+  await telegramRequest({
+    botToken,
+    method: 'deleteMessage',
+    body: {
+      chat_id: chatId,
+      message_id: messageId
+    }
+  }).catch(() => {});
 }
 
 async function answerCallback({ botToken, callbackId, text }) {
-  return telegramRequest({ botToken, method: 'answerCallbackQuery', body: {
-    callback_query_id: callbackId,
-    text
-  }});
+  return telegramRequest({
+    botToken,
+    method: 'answerCallbackQuery',
+    body: {
+      callback_query_id: callbackId,
+      text
+    }
+  });
 }
 
 async function telegramRequest({ botToken, method, body }) {

@@ -2,6 +2,7 @@ import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { parseAccessToken } from '../src/access-token.js';
+import { hasBlobStorage, readBlobState } from '../src/blob-storage.js';
 import { renderFeedPage, renderRegistrationPage } from '../src/render.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -27,6 +28,10 @@ function getAccessToken(req) {
 }
 
 async function readState() {
+  if (hasBlobStorage()) {
+    return readBlobState();
+  }
+
   try {
     const raw = await readFile(dbPath, 'utf8');
     return JSON.parse(raw);
