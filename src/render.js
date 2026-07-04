@@ -5,6 +5,7 @@ const views = [
   { id: 'video', heading: 'Видео', empty: 'Видео пока нет.' },
   { id: 'file', heading: 'Файлы', empty: 'Файлов пока нет.' }
 ];
+const courseTimeZone = getCourseTimeZone();
 
 export function renderFeedPage({ title, posts, access, token = '', view = 'all' }) {
   const activeView = normalizeView(view);
@@ -502,6 +503,7 @@ function linkify(value) {
 
 function formatDateTime(value) {
   return new Intl.DateTimeFormat('ru-RU', {
+    timeZone: courseTimeZone,
     hour: '2-digit',
     minute: '2-digit'
   }).format(new Date(value));
@@ -517,15 +519,40 @@ function formatDay(value) {
   if (isSameDay(date, yesterday)) return 'Вчера';
 
   return new Intl.DateTimeFormat('ru-RU', {
+    timeZone: courseTimeZone,
     day: 'numeric',
     month: 'long'
   }).format(date);
 }
 
 function isSameDay(left, right) {
-  return left.getFullYear() === right.getFullYear()
-    && left.getMonth() === right.getMonth()
-    && left.getDate() === right.getDate();
+  const leftParts = getDateParts(left);
+  const rightParts = getDateParts(right);
+  return leftParts.year === rightParts.year
+    && leftParts.month === rightParts.month
+    && leftParts.day === rightParts.day;
+}
+
+function getDateParts(value) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: courseTimeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(value);
+
+  return Object.fromEntries(parts.map((part) => [part.type, part.value]));
+}
+
+function getCourseTimeZone() {
+  const value = String(process.env.COURSE_TIME_ZONE || '').trim();
+
+  try {
+    new Intl.DateTimeFormat('ru-RU', { timeZone: value || 'Asia/Novosibirsk' });
+    return value || 'Asia/Novosibirsk';
+  } catch {
+    return 'Asia/Novosibirsk';
+  }
 }
 
 function escapeHtml(value) {
