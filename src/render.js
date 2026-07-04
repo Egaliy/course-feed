@@ -188,8 +188,8 @@ function renderContactFooter() {
 
 function renderCourseStats(posts) {
   const mediaCount = posts.reduce((total, post) => total + (post.media?.length || 0), 0);
-  const latestPost = posts[0];
-  const updated = latestPost ? `${formatDay(latestPost.createdAt)} ${formatDateTime(latestPost.createdAt)}` : 'нет';
+  const latestDate = getLatestPostDate(posts);
+  const updated = latestDate ? `${formatDay(latestDate)} ${formatDateTime(latestDate)}` : 'нет';
 
   return `
     <section class="course-stats" aria-label="Сводка курса">
@@ -207,6 +207,13 @@ function renderCourseStats(posts) {
       </div>
     </section>
   `;
+}
+
+function getLatestPostDate(posts) {
+  return posts
+    .map((post) => new Date(post.createdAt))
+    .filter((date) => Number.isFinite(date.getTime()))
+    .sort((a, b) => b - a)[0] || null;
 }
 
 function renderEmptyState(message, view = 'all') {

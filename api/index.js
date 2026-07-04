@@ -20,6 +20,9 @@ export default async function handler(req, res) {
     : renderRegistrationPage({ title, state: access ? 'expired' : 'default' });
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
   res.status(200).send(html);
 }
 
