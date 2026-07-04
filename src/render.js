@@ -441,7 +441,7 @@ function renderMedia(item) {
         </button>
         <div class="voice-content">
           <div class="voice-title">Голосовое сообщение</div>
-          <div class="voice-track" aria-hidden="true">
+          <div class="voice-track" role="slider" aria-label="Прогресс голосового сообщения" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
             <span class="voice-progress"></span>
           </div>
           <audio src="${escapeHtml(item.url)}" preload="metadata"></audio>

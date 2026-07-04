@@ -932,6 +932,7 @@ textarea {
   border-radius: 999px;
   background: rgba(79, 127, 186, 0.16);
   cursor: pointer;
+  touch-action: none;
 }
 
 .video-progress {
@@ -1311,6 +1312,8 @@ textarea {
   overflow: hidden;
   border-radius: 999px;
   background: rgba(79, 127, 186, 0.16);
+  cursor: pointer;
+  touch-action: none;
 }
 
 .voice-progress {

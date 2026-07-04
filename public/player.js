@@ -29,6 +29,12 @@ document.addEventListener('click', async (event) => {
     return;
   }
 
+  const voiceTrack = event.target.closest('.voice-track');
+  if (voiceTrack) {
+    seekVoice(voiceTrack, event);
+    return;
+  }
+
   const videoFullscreen = event.target.closest('.video-fullscreen');
   if (videoFullscreen) {
     await openVideoFullscreen(videoFullscreen);
@@ -99,6 +105,7 @@ document.addEventListener('play', (event) => {
 document.addEventListener('DOMContentLoaded', () => {
   setupVoicePlayers();
   setupVideoPlayers();
+  setupSeekBars();
   setupFileCards();
   updateUnreadTabs();
   updateNewBadges();
@@ -310,6 +317,12 @@ function setupVideoPlayers() {
   });
 }
 
+function setupSeekBars() {
+  document.querySelectorAll('.video-timeline, .voice-track').forEach((track) => {
+    track.addEventListener('pointerdown', (event) => startSeekDrag(track, event));
+  });
+}
+
 async function toggleVideo(button) {
   const player = button.closest('.video-player');
   const video = player?.querySelector('video');
@@ -336,10 +349,63 @@ function seekVideo(timeline, event) {
   const video = player?.querySelector('video');
   if (!video || !Number.isFinite(video.duration) || video.duration <= 0) return;
 
-  const rect = timeline.getBoundingClientRect();
-  const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
-  video.currentTime = video.duration * ratio;
+  video.currentTime = video.duration * getSeekRatio(timeline, event);
   updateVideoState(video);
+}
+
+function seekVoice(track, event) {
+  const message = track.closest('.voice-message');
+  const audio = message?.querySelector('audio');
+  if (!audio || !Number.isFinite(audio.duration) || audio.duration <= 0) return;
+
+  audio.currentTime = audio.duration * getSeekRatio(track, event);
+  updateVoiceState(audio);
+}
+
+function startSeekDrag(track, event) {
+  if (event.button !== undefined && event.button !== 0) return;
+
+  const media = getSeekMedia(track);
+  if (!media || !Number.isFinite(media.duration) || media.duration <= 0) return;
+
+  event.preventDefault();
+  track.setPointerCapture?.(event.pointerId);
+  updateSeekPosition(track, event);
+
+  const move = (moveEvent) => updateSeekPosition(track, moveEvent);
+  const stop = (upEvent) => {
+    updateSeekPosition(track, upEvent);
+    track.releasePointerCapture?.(upEvent.pointerId);
+    window.removeEventListener('pointermove', move);
+    window.removeEventListener('pointerup', stop);
+    window.removeEventListener('pointercancel', stop);
+  };
+
+  window.addEventListener('pointermove', move);
+  window.addEventListener('pointerup', stop);
+  window.addEventListener('pointercancel', stop);
+}
+
+function updateSeekPosition(track, event) {
+  if (track.classList.contains('video-timeline')) {
+    seekVideo(track, event);
+    return;
+  }
+
+  seekVoice(track, event);
+}
+
+function getSeekMedia(track) {
+  if (track.classList.contains('video-timeline')) {
+    return track.closest('.video-player')?.querySelector('video') || null;
+  }
+
+  return track.closest('.voice-message')?.querySelector('audio') || null;
+}
+
+function getSeekRatio(track, event) {
+  const rect = track.getBoundingClientRect();
+  return Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
 }
 
 async function openVideoFullscreen(button) {
@@ -509,6 +575,8 @@ function updateVoiceState(audio) {
   if (button) button.setAttribute('aria-label', audio.paused ? 'Воспроизвести голосовое' : 'Поставить на паузу');
   if (time) time.textContent = formatVoiceTime(audio.paused && audio.currentTime === 0 ? duration : audio.currentTime);
   if (progress) progress.style.width = `${percent}%`;
+  const track = message.querySelector('.voice-track');
+  if (track) track.setAttribute('aria-valuenow', String(Math.round(percent)));
 }
 
 function formatVoiceTime(value) {
