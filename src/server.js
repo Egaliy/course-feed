@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { Store } from './store.js';
 import { createBot } from './bot.js';
 import { parseAccessToken } from './access-token.js';
+import { hasBlobStorage, readBlobState } from './blob-storage.js';
 import {
   renderFeedPage,
   renderRegistrationPage,
@@ -23,6 +24,7 @@ const publicBaseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${port}`;
 const adminIds = (process.env.ADMIN_IDS || '').split(',').map((id) => id.trim()).filter(Boolean);
 const accessSecret = process.env.ACCESS_TOKEN_SECRET || 'course-feed-access-v1';
 const enableLocalBotPolling = process.env.ENABLE_LOCAL_BOT_POLLING === 'true';
+const useBlobStorage = hasBlobStorage();
 
 const store = new Store(path.join(rootDir, 'data', 'db.json'));
 await store.load();
@@ -32,14 +34,15 @@ app.disable('x-powered-by');
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static(publicDir));
 
-app.get('/', (req, res) => {
+app.get('/', async (req, res) => {
+  const state = await getState();
   const token = getAccessTokenFromQuery(req);
   if (!token) {
     res.send(renderRegistrationPage({ title }));
     return;
   }
 
-  const access = getAccess(token);
+  const access = getAccess(token, state);
   if (!access) {
     res.send(renderRegistrationPage({ title }));
     return;
@@ -50,7 +53,7 @@ app.get('/', (req, res) => {
     return;
   }
 
-  res.send(renderFeedPage({ title, posts: store.getPosts(), access, token, view: req.query.view }));
+  res.send(renderFeedPage({ title, posts: getPosts(state), access, token, view: req.query.view }));
 });
 
 app.post('/register', async (req, res) => {
@@ -76,8 +79,9 @@ app.get('/feed', (req, res) => {
   res.redirect('/');
 });
 
-app.get('/a/:token', (req, res) => {
-  const access = getAccess(req.params.token);
+app.get('/a/:token', async (req, res) => {
+  const state = await getState();
+  const access = getAccess(req.params.token, state);
 
   if (!access) {
     res.send(renderRegistrationPage({ title }));
@@ -89,7 +93,7 @@ app.get('/a/:token', (req, res) => {
     return;
   }
 
-  res.send(renderFeedPage({ title, posts: store.getPosts(), access, token: req.params.token, view: req.query.view }));
+  res.send(renderFeedPage({ title, posts: getPosts(state), access, token: req.params.token, view: req.query.view }));
 });
 
 app.listen(port, () => {
@@ -182,8 +186,24 @@ function getAccessTokenFromQuery(req) {
   return String(req.query.k || req.query.code || req.query.access || '').trim();
 }
 
-function getAccess(token) {
-  return parseAccessToken(token, accessSecret) || store.findAccessLink(token);
+async function getState() {
+  if (useBlobStorage) {
+    return readBlobState();
+  }
+
+  return {
+    posts: store.getPosts(),
+    accessLinks: store.state.accessLinks || []
+  };
+}
+
+function getPosts(state) {
+  return [...(state.posts || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+}
+
+function getAccess(token, state) {
+  return parseAccessToken(token, accessSecret)
+    || (state.accessLinks || []).find((link) => link.token === token);
 }
 
 function isActiveAccess(access) {
