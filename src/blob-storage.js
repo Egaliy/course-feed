@@ -21,7 +21,7 @@ export async function readBlobState() {
   if (!hasBlobStorage()) return structuredClone(defaultState);
 
   try {
-    const result = await get(dbPathname, { access: 'public' });
+    const result = await get(dbPathname, withBlobToken({ access: 'public' }));
     if (!result?.stream) return structuredClone(defaultState);
 
     const raw = result.blob?.url
@@ -39,12 +39,12 @@ export async function writeBlobState(state) {
     throw new Error('BLOB_READ_WRITE_TOKEN is missing');
   }
 
-  await put(dbPathname, JSON.stringify(normalizeState(state), null, 2), {
+  await put(dbPathname, JSON.stringify(normalizeState(state), null, 2), withBlobToken({
     access: 'public',
     allowOverwrite: true,
     contentType: 'application/json',
     cacheControlMaxAge: 60
-  });
+  }));
 }
 
 export async function addBlobPost(input) {
@@ -103,12 +103,12 @@ export async function uploadTelegramFileToBlob({ botToken, fileId, name }) {
 
   const buffer = Buffer.from(await response.arrayBuffer());
   const contentType = response.headers.get('content-type') || 'application/octet-stream';
-  const blob = await put(pathname, buffer, {
+  const blob = await put(pathname, buffer, withBlobToken({
     access: 'public',
     contentType,
     addRandomSuffix: false,
     cacheControlMaxAge: 31536000
-  });
+  }));
 
   return {
     url: blob.url,
@@ -126,6 +126,11 @@ function normalizeState(state) {
     students: Array.isArray(state?.students) ? state.students : [],
     adminCodes: Array.isArray(state?.adminCodes) ? state.adminCodes : []
   };
+}
+
+function withBlobToken(options = {}) {
+  const token = process.env.BLOB_READ_WRITE_TOKEN;
+  return token ? { ...options, token } : options;
 }
 
 async function getTelegramFile(botToken, fileId) {
