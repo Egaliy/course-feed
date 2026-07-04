@@ -378,7 +378,11 @@ function getPostViews(post) {
 
 function renderMedia(item) {
   if (item.kind === 'photo') {
-    return `<img src="${escapeHtml(item.url)}" alt="" loading="lazy">`;
+    return `
+      <button class="photo-open" type="button" data-photo-src="${escapeHtml(item.url)}" aria-label="Открыть фото на весь экран">
+        <img src="${escapeHtml(item.url)}" alt="" loading="lazy">
+      </button>
+    `;
   }
 
   if (item.kind === 'video') {

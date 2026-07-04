@@ -1,4 +1,16 @@
 document.addEventListener('click', async (event) => {
+  const photoButton = event.target.closest('.photo-open[data-photo-src]');
+  if (photoButton) {
+    openPhotoLightbox(photoButton.dataset.photoSrc);
+    return;
+  }
+
+  const photoClose = event.target.closest('[data-photo-lightbox-close]');
+  if (photoClose || event.target.classList?.contains('photo-lightbox')) {
+    closePhotoLightbox();
+    return;
+  }
+
   const fileAction = event.target.closest('[data-file-action]');
   if (fileAction) {
     markFileDownloaded(fileAction);
@@ -98,7 +110,47 @@ document.addEventListener('DOMContentLoaded', () => {
 document.addEventListener('fullscreenchange', updateFullscreenButtons);
 document.addEventListener('webkitfullscreenchange', updateFullscreenButtons);
 
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') {
+    closePhotoLightbox();
+  }
+});
+
 window.addEventListener('beforeunload', markVisiblePostsRead);
+
+function openPhotoLightbox(src) {
+  if (!src) return;
+
+  closePhotoLightbox();
+
+  const lightbox = document.createElement('div');
+  lightbox.className = 'photo-lightbox';
+  lightbox.setAttribute('role', 'dialog');
+  lightbox.setAttribute('aria-modal', 'true');
+  lightbox.innerHTML = `
+    <button class="photo-lightbox-close" type="button" data-photo-lightbox-close aria-label="Закрыть фото"></button>
+    <img src="${escapeAttribute(src)}" alt="">
+  `;
+
+  document.body.append(lightbox);
+  document.body.classList.add('is-photo-open');
+}
+
+function closePhotoLightbox() {
+  const lightbox = document.querySelector('.photo-lightbox');
+  if (!lightbox) return;
+
+  lightbox.remove();
+  document.body.classList.remove('is-photo-open');
+}
+
+function escapeAttribute(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
+}
 
 function setupFileCards() {
   document.querySelectorAll('.file-card[data-file-url]').forEach((card) => {
