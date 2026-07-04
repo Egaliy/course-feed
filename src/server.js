@@ -22,6 +22,7 @@ const botToken = process.env.BOT_TOKEN;
 const publicBaseUrl = process.env.PUBLIC_BASE_URL || `http://localhost:${port}`;
 const adminIds = (process.env.ADMIN_IDS || '').split(',').map((id) => id.trim()).filter(Boolean);
 const accessSecret = process.env.ACCESS_TOKEN_SECRET || 'course-feed-access-v1';
+const enableLocalBotPolling = process.env.ENABLE_LOCAL_BOT_POLLING === 'true';
 
 const store = new Store(path.join(rootDir, 'data', 'db.json'));
 await store.load();
@@ -105,6 +106,8 @@ function getTitle() {
 
 if (!botToken || !adminIds.length) {
   console.warn('BOT_TOKEN or ADMIN_IDS is missing. Site started without Telegram bot.');
+} else if (!enableLocalBotPolling) {
+  console.warn('Telegram polling is disabled. Set ENABLE_LOCAL_BOT_POLLING=true only for local bot testing.');
 } else {
   const bot = createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir });
   const me = await bot.telegram.getMe();
