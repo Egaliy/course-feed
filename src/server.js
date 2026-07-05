@@ -5,9 +5,10 @@ import { fileURLToPath } from 'node:url';
 import { Store } from './store.js';
 import { createBot } from './bot.js';
 import { parseAccessToken } from './access-token.js';
-import { hasBlobStorage, readBlobState } from './blob-storage.js';
+import { deleteBlobPost, hasBlobStorage, readBlobState } from './blob-storage.js';
 import {
   renderFeedPage,
+  renderManagePage,
   renderRegistrationPage,
   renderRegistrationSuccessPage
 } from './render.js';
@@ -36,6 +37,17 @@ app.use(express.static(publicDir));
 
 app.get('/', async (req, res) => {
   const state = await getState();
+
+  if (isManageRequest(req)) {
+    res.send(renderManagePage({
+      title,
+      posts: getPosts(state),
+      adminKey: getSiteAdminKey(),
+      notice: String(req.query.notice || '')
+    }));
+    return;
+  }
+
   const token = getAccessTokenFromQuery(req);
   if (!token) {
     res.send(renderRegistrationPage({ title }));
@@ -54,6 +66,17 @@ app.get('/', async (req, res) => {
   }
 
   res.send(renderFeedPage({ title, posts: getPosts(state), access, token, view: req.query.view }));
+});
+
+app.post('/', async (req, res) => {
+  if (!isManageRequest(req)) {
+    res.status(404).send(renderRegistrationPage({ title }));
+    return;
+  }
+
+  const ids = getPostIdsFromBody(req.body);
+  await Promise.all(ids.map((id) => deleteBlobPost(id)));
+  res.redirect(303, `/?manage=${encodeURIComponent(getSiteAdminKey())}&notice=${encodeURIComponent(`Удалено: ${ids.length}`)}`);
 });
 
 app.post('/register', async (req, res) => {
@@ -184,6 +207,26 @@ function formatDateTime(value) {
 
 function getAccessTokenFromQuery(req) {
   return String(req.query.k || req.query.code || req.query.access || '').trim();
+}
+
+function isManageRequest(req) {
+  const key = getSiteAdminKey();
+  return Boolean(key) && String(req.query.manage || '') === key;
+}
+
+function getSiteAdminKey() {
+  return process.env.SITE_ADMIN_KEY || process.env.TELEGRAM_WEBHOOK_SECRET || '';
+}
+
+function getPostIdsFromBody(body) {
+  if (typeof body === 'string') {
+    return new URLSearchParams(body).getAll('postId').filter(Boolean);
+  }
+
+  const value = body?.postId;
+  if (Array.isArray(value)) return value.map(String).filter(Boolean);
+  if (value) return [String(value)];
+  return [];
 }
 
 async function getState() {

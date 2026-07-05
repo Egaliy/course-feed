@@ -107,6 +107,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupVideoPlayers();
   setupSeekBars();
   setupFileCards();
+  setupManageSelection();
   updateUnreadTabs();
   updateNewBadges();
   document.querySelectorAll('.content-tabs a').forEach((link) => {
@@ -162,6 +163,17 @@ function escapeAttribute(value) {
 function setupFileCards() {
   document.querySelectorAll('.file-card[data-file-url]').forEach((card) => {
     updateFileCard(card, isFileDownloaded(card.dataset.fileUrl));
+  });
+}
+
+function setupManageSelection() {
+  const selectAll = document.querySelector('[data-select-all]');
+  if (!selectAll) return;
+
+  selectAll.addEventListener('change', () => {
+    document.querySelectorAll('.manage-post input[name="postId"]').forEach((item) => {
+      item.checked = selectAll.checked;
+    });
   });
 }
 

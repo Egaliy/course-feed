@@ -1,5 +1,10 @@
 import { createAccessToken } from '../src/access-token.js';
-import { addBlobPost, createBlobAccessLink, hasBlobStorage, uploadTelegramFileToBlob } from '../src/blob-storage.js';
+import {
+  addBlobPost,
+  createBlobAccessLink,
+  hasBlobStorage,
+  uploadTelegramFileToBlob
+} from '../src/blob-storage.js';
 import { extractMedia, extractText } from '../src/media.js';
 
 const durations = [
@@ -64,11 +69,13 @@ async function handleUpdate({ update, botToken }) {
 
   if (text === '/start') {
     await deleteMessage({ botToken, chatId, messageId: message.message_id });
-    await sendMessage({
-      botToken,
-      chatId,
-      text: 'Бот работает на Vercel. Отправьте текст, фото, видео, голосовое или файл для публикации. Для ссылки ученику используйте /link.'
-    });
+    await sendHelpMessage({ botToken, chatId });
+    return;
+  }
+
+  if (text === '/help') {
+    await deleteMessage({ botToken, chatId, messageId: message.message_id });
+    await sendHelpMessage({ botToken, chatId });
     return;
   }
 
@@ -85,6 +92,12 @@ async function handleUpdate({ update, botToken }) {
         }))]
       }
     });
+    return;
+  }
+
+  if (text === '/manage') {
+    await deleteMessage({ botToken, chatId, messageId: message.message_id });
+    await sendManageLink({ botToken, chatId });
     return;
   }
 
@@ -117,8 +130,12 @@ async function publishMessage({ message, botToken, chatId }) {
   const text = extractText(message);
   if (!text && !media.length) return;
 
-  await addBlobPost({ text, media });
-  await sendMessage({ botToken, chatId, text: 'Опубликовано.' });
+  const post = await addBlobPost({ text, media });
+  await sendMessage({
+    botToken,
+    chatId,
+    text: `Опубликовано.\nМатериал: ${describePost(post)}`
+  });
 }
 
 async function handleCallback({ callback, botToken }) {
@@ -159,6 +176,22 @@ async function createAccessUrl(months) {
   return `${baseUrl}/?k=${token}`;
 }
 
+async function sendHelpMessage({ botToken, chatId }) {
+  await sendMessage({
+    botToken,
+    chatId,
+    text: [
+      'Команды бота:',
+      '',
+      '/link - создать ссылку доступа на 1, 3, 6 или 9 месяцев',
+      '/manage - открыть управление материалами на сайте',
+      '/help - показать эту подсказку',
+      '',
+      'Чтобы опубликовать материал, просто отправьте текст, фото, видео, голосовое или файл в этот чат.'
+    ].join('\n')
+  });
+}
+
 async function sendMessage({ botToken, chatId, text, replyMarkup }) {
   return telegramRequest({
     botToken,
@@ -168,6 +201,21 @@ async function sendMessage({ botToken, chatId, text, replyMarkup }) {
       text,
       reply_markup: replyMarkup
     }
+  });
+}
+
+async function sendManageLink({ botToken, chatId }) {
+  const key = getSiteAdminKey();
+  if (!key) {
+    await sendMessage({ botToken, chatId, text: 'Ключ управления сайтом не настроен.' });
+    return;
+  }
+
+  const baseUrl = (process.env.PUBLIC_BASE_URL || 'https://course-feed.vercel.app').replace(/\/$/, '');
+  await sendMessage({
+    botToken,
+    chatId,
+    text: `Управление материалами на сайте:\n${baseUrl}/?manage=${encodeURIComponent(key)}`
   });
 }
 
@@ -231,8 +279,29 @@ function getAccessSecret() {
   return process.env.ACCESS_TOKEN_SECRET || 'course-feed-access-v1';
 }
 
+function getSiteAdminKey() {
+  return process.env.SITE_ADMIN_KEY || process.env.TELEGRAM_WEBHOOK_SECRET || '';
+}
+
 function monthsText(months) {
   if (months === 1) return '1 месяц';
   if (months > 1 && months < 5) return `${months} месяца`;
   return `${months} месяцев`;
+}
+
+function describePost(post) {
+  const text = String(post.text || '').trim().replace(/\s+/g, ' ');
+  if (text) return text.length > 34 ? `${text.slice(0, 34)}...` : text;
+
+  const media = Array.isArray(post.media) ? post.media : [];
+  if (!media.length) return 'публикация';
+
+  const labels = {
+    photo: 'фото',
+    audio: 'голосовое',
+    video: 'видео',
+    file: 'файл'
+  };
+  const first = labels[media[0]?.kind] || 'файл';
+  return media.length > 1 ? `${first} +${media.length - 1}` : first;
 }

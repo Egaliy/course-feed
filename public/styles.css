@@ -107,6 +107,19 @@ textarea {
   white-space: nowrap;
 }
 
+.access-stack {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+}
+
+.access-until {
+  color: var(--secondary);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .author-card {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -490,6 +503,112 @@ textarea {
   border-radius: 12px;
   cursor: pointer;
   font-weight: 850;
+}
+
+.danger-button {
+  min-height: 42px;
+  border: 0;
+  border-radius: 12px;
+  padding: 0 16px;
+  background: #b84d5a;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 850;
+  box-shadow: 0 10px 22px rgba(184, 77, 90, 0.18);
+}
+
+.danger-button:hover {
+  background: #9f3f4b;
+}
+
+.manage-shell {
+  width: min(900px, 100%);
+}
+
+.manage-notice {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border: 1px solid rgba(16, 124, 65, 0.16);
+  border-radius: 14px;
+  background: rgba(16, 124, 65, 0.08);
+  color: var(--green);
+  font-weight: 800;
+}
+
+.manage-form {
+  display: grid;
+  gap: 12px;
+}
+
+.manage-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(14px);
+}
+
+.manage-select-all,
+.manage-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--secondary);
+  font-size: 13px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.manage-select-all input,
+.manage-check input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--blue);
+}
+
+.manage-post {
+  display: grid;
+  grid-template-columns: 112px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.manage-check {
+  min-height: 48px;
+  padding: 14px 10px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.82);
+}
+
+.manage-post-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.manage-post-head strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.manage-post-head time {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 760;
 }
 
 .register-form button {
@@ -1690,6 +1809,10 @@ textarea {
     width: fit-content;
   }
 
+  .access-stack {
+    justify-items: start;
+  }
+
   .author-card,
   .contact-footer {
     grid-template-columns: 1fr;
@@ -1842,8 +1965,19 @@ textarea {
   }
 
   .admin-header,
-  .admin-item {
+  .admin-item,
+  .manage-post,
+  .manage-post-head,
+  .manage-toolbar {
     display: grid;
+  }
+
+  .manage-post {
+    grid-template-columns: 1fr;
+  }
+
+  .danger-button {
+    width: 100%;
   }
 
   .admin-stats {

@@ -62,6 +62,27 @@ export async function addBlobPost(input) {
   return post;
 }
 
+export async function deleteBlobPost(id) {
+  const state = await readBlobState();
+  const postId = String(id || '');
+  const before = state.posts.length;
+  state.posts = state.posts.filter((post) => post.id !== postId);
+
+  if (state.posts.length === before) {
+    return false;
+  }
+
+  await writeBlobState(state);
+  return true;
+}
+
+export async function getRecentBlobPosts(limit = 10) {
+  const state = await readBlobState();
+  return [...state.posts]
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(0, limit);
+}
+
 export async function createBlobAccessLink(months) {
   const state = await readBlobState();
   const now = new Date();

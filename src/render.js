@@ -22,7 +22,10 @@ export function renderFeedPage({ title, posts, access, token = '', view = 'all' 
           <p class="eyebrow">Закрытая лента</p>
           <h1>${escapeHtml(title)}</h1>
         </div>
-        <span class="access-badge">Доступ открыт</span>
+        <div class="access-stack">
+          <span class="access-badge">Доступ открыт</span>
+          ${renderAccessUntil(access)}
+        </div>
       </header>
       ${renderAuthorCard()}
       ${renderCourseStats(posts)}
@@ -36,6 +39,38 @@ export function renderFeedPage({ title, posts, access, token = '', view = 'all' 
         </div>
       </section>
       ${renderContactFooter()}
+    </main>
+  `);
+}
+
+export function renderManagePage({ title, posts, adminKey, notice = '' }) {
+  const sortedPosts = [...(posts || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  return page(`Управление - ${title}`, `
+    <main class="feed-shell manage-shell">
+      <header class="feed-header">
+        <div>
+          <p class="eyebrow">Управление сайтом</p>
+          <h1>Материалы курса</h1>
+        </div>
+        <span class="access-badge">Режим удаления</span>
+      </header>
+      ${notice ? `<div class="manage-notice">${escapeHtml(notice)}</div>` : ''}
+      ${sortedPosts.length ? `
+        <form class="manage-form" method="post" action="/?manage=${encodeURIComponent(adminKey)}">
+          <input type="hidden" name="action" value="delete-posts">
+          <div class="manage-toolbar">
+            <label class="manage-select-all">
+              <input type="checkbox" data-select-all>
+              <span>Выделить все</span>
+            </label>
+            <button class="danger-button" type="submit">Удалить выбранное</button>
+          </div>
+          <div class="feed">
+            ${sortedPosts.map(renderManagePost).join('')}
+          </div>
+        </form>
+      ` : renderEmptyState('Материалов пока нет.', 'all')}
     </main>
   `);
 }
@@ -210,6 +245,12 @@ function renderCourseStats(posts) {
   `;
 }
 
+function renderAccessUntil(access) {
+  if (!access?.expiresAt) return '';
+
+  return `<span class="access-until">до ${escapeHtml(formatFullDate(access.expiresAt))}</span>`;
+}
+
 function getLatestPostDate(posts) {
   return posts
     .map((post) => new Date(post.createdAt))
@@ -222,9 +263,21 @@ function renderEmptyState(message, view = 'all') {
     <article class="empty comfort-empty">
       ${renderEmptyIcon(view)}
       <h3>${escapeHtml(message)}</h3>
-      <p>Материалы появятся здесь после публикации.</p>
+      <p>${escapeHtml(getEmptyDescription(view))}</p>
     </article>
   `;
+}
+
+function getEmptyDescription(view) {
+  const descriptions = {
+    all: 'Когда Александра опубликует первый материал, он появится в ленте.',
+    photo: 'Здесь будут собраны фотографии из курса.',
+    audio: 'Здесь будут голосовые сообщения, которые можно слушать в удобном темпе.',
+    video: 'Здесь будут видео с удобным просмотром и перемоткой.',
+    file: 'Здесь будут файлы для скачивания и повторного открытия.'
+  };
+
+  return descriptions[view] || descriptions.all;
 }
 
 function renderEmptyIcon(view) {
@@ -378,6 +431,44 @@ function renderPost(post) {
   `;
 }
 
+function renderManagePost(post) {
+  const preview = getPostPreview(post);
+
+  return `
+    <article class="post manage-post">
+      <label class="manage-check">
+        <input type="checkbox" name="postId" value="${escapeHtml(post.id)}">
+        <span>Выбрать</span>
+      </label>
+      <div class="post-body">
+        <div class="manage-post-head">
+          <strong>${escapeHtml(preview)}</strong>
+          <time datetime="${escapeHtml(post.createdAt)}">${escapeHtml(formatDay(post.createdAt))} ${escapeHtml(formatDateTime(post.createdAt))}</time>
+        </div>
+        ${post.text ? `<div class="post-text">${linkify(escapeHtml(post.text))}</div>` : ''}
+        ${post.media?.length ? `<div class="media-grid">${post.media.map(renderMedia).join('')}</div>` : ''}
+      </div>
+    </article>
+  `;
+}
+
+function getPostPreview(post) {
+  const text = String(post.text || '').trim().replace(/\s+/g, ' ');
+  if (text) return text.length > 46 ? `${text.slice(0, 46)}...` : text;
+
+  const media = Array.isArray(post.media) ? post.media : [];
+  if (!media.length) return 'Публикация';
+
+  const labels = {
+    photo: 'Фото',
+    audio: 'Голосовое сообщение',
+    video: 'Видео',
+    file: 'Файл'
+  };
+  const first = labels[media[0]?.kind] || 'Файл';
+  return media.length > 1 ? `${first} +${media.length - 1}` : first;
+}
+
 function getPostViews(post) {
   const views = new Set(['all']);
   (post.media || []).forEach((item) => views.add(getMediaView(item)));
@@ -523,6 +614,15 @@ function formatDay(value) {
     day: 'numeric',
     month: 'long'
   }).format(date);
+}
+
+function formatFullDate(value) {
+  return new Intl.DateTimeFormat('ru-RU', {
+    timeZone: courseTimeZone,
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  }).format(new Date(value));
 }
 
 function isSameDay(left, right) {

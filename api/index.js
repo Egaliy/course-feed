@@ -2,8 +2,8 @@ import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { parseAccessToken } from '../src/access-token.js';
-import { hasBlobStorage, readBlobState } from '../src/blob-storage.js';
-import { renderFeedPage, renderRegistrationPage } from '../src/render.js';
+import { deleteBlobPost, hasBlobStorage, readBlobState } from '../src/blob-storage.js';
+import { renderFeedPage, renderManagePage, renderRegistrationPage } from '../src/render.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..');
@@ -13,6 +13,27 @@ const dbPath = path.join(rootDir, 'data', 'db.json');
 
 export default async function handler(req, res) {
   const state = await readState();
+
+  if (isManageRequest(req)) {
+    if (req.method === 'POST') {
+      const ids = getPostIdsFromBody(req.body);
+      await Promise.all(ids.map((id) => deleteBlobPost(id)));
+      redirect(res, `/?manage=${encodeURIComponent(getSiteAdminKey())}&notice=${encodeURIComponent(`Удалено: ${ids.length}`)}`);
+      return;
+    }
+
+    const notice = String(req.query.notice || '');
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    res.status(200).send(renderManagePage({
+      title,
+      posts: getPosts(state),
+      adminKey: getSiteAdminKey(),
+      notice
+    }));
+    return;
+  }
+
   const token = getAccessToken(req);
   const access = token ? getAccess(token, state) : null;
   const html = access && isActiveAccess(access)
@@ -24,6 +45,32 @@ export default async function handler(req, res) {
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
   res.status(200).send(html);
+}
+
+function isManageRequest(req) {
+  const key = getSiteAdminKey();
+  return Boolean(key) && String(req.query.manage || '') === key;
+}
+
+function getSiteAdminKey() {
+  return process.env.SITE_ADMIN_KEY || process.env.TELEGRAM_WEBHOOK_SECRET || '';
+}
+
+function getPostIdsFromBody(body) {
+  if (typeof body === 'string') {
+    return new URLSearchParams(body).getAll('postId').filter(Boolean);
+  }
+
+  const value = body?.postId;
+  if (Array.isArray(value)) return value.map(String).filter(Boolean);
+  if (value) return [String(value)];
+  return [];
+}
+
+function redirect(res, location) {
+  res.statusCode = 303;
+  res.setHeader('Location', location);
+  res.end();
 }
 
 function getAccessToken(req) {
