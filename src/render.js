@@ -263,21 +263,9 @@ function renderEmptyState(message, view = 'all') {
     <article class="empty comfort-empty">
       ${renderEmptyIcon(view)}
       <h3>${escapeHtml(message)}</h3>
-      <p>${escapeHtml(getEmptyDescription(view))}</p>
+      <p>Материалы появятся здесь после публикации.</p>
     </article>
   `;
-}
-
-function getEmptyDescription(view) {
-  const descriptions = {
-    all: 'Когда Александра опубликует первый материал, он появится в ленте.',
-    photo: 'Здесь будут собраны фотографии из курса.',
-    audio: 'Здесь будут голосовые сообщения, которые можно слушать в удобном темпе.',
-    video: 'Здесь будут видео с удобным просмотром и перемоткой.',
-    file: 'Здесь будут файлы для скачивания и повторного открытия.'
-  };
-
-  return descriptions[view] || descriptions.all;
 }
 
 function renderEmptyIcon(view) {

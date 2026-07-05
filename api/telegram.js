@@ -86,10 +86,10 @@ async function handleUpdate({ update, botToken }) {
       chatId,
       text: 'На какой срок выдать доступ ученику?',
       replyMarkup: {
-        inline_keyboard: [durations.map((item) => ({
+        inline_keyboard: durations.map((item) => [{
           text: item.label,
           callback_data: `link:${item.months}`
-        }))]
+        }])
       }
     });
     return;
@@ -153,9 +153,14 @@ async function handleCallback({ callback, botToken }) {
   if (!match) return;
 
   const months = Number(match[1]);
+  if (!durations.some((item) => item.months === months)) {
+    await answerCallback({ botToken, callbackId: callback.id, text: 'Неизвестный срок' });
+    return;
+  }
+
   const url = await createAccessUrl(months);
 
-  await answerCallback({ botToken, callbackId: callback.id, text: 'Ссылка создана' });
+  await answerCallback({ botToken, callbackId: callback.id, text: `${monthsText(months)}: ссылка создана` });
   await deleteMessage({ botToken, chatId, messageId: callback.message.message_id });
   await sendMessage({
     botToken,
