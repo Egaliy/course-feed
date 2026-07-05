@@ -1,7 +1,6 @@
-import { createAccessToken } from '../src/access-token.js';
+import { createCompactAccessToken } from '../src/access-token.js';
 import {
   addBlobPost,
-  createBlobAccessLink,
   hasBlobStorage,
   uploadTelegramFileToBlob
 } from '../src/blob-storage.js';
@@ -172,13 +171,8 @@ async function handleCallback({ callback, botToken }) {
 async function createAccessUrl(months) {
   const baseUrl = (process.env.PUBLIC_BASE_URL || 'https://course-feed.vercel.app').replace(/\/$/, '');
 
-  if (hasBlobStorage()) {
-    const link = await createBlobAccessLink(months);
-    return `${baseUrl}/a/${link.token}`;
-  }
-
-  const token = createAccessToken({ months, secret: getAccessSecret() });
-  return `${baseUrl}/?k=${token}`;
+  const token = createCompactAccessToken({ months, secret: getAccessSecret() });
+  return `${baseUrl}/a/${token}`;
 }
 
 async function sendHelpMessage({ botToken, chatId }) {

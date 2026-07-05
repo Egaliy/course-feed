@@ -398,7 +398,7 @@ function buildViewHref({ view, token }) {
 }
 
 function isShortAccessToken(token) {
-  return /^[A-Za-z0-9_-]{6,32}$/.test(String(token || ''));
+  return /^[A-Za-z0-9_.-]{6,64}$/.test(String(token || ''));
 }
 
 function renderPost(post) {

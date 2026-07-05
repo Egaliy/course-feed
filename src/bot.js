@@ -1,7 +1,7 @@
 import { Telegraf, Markup } from 'telegraf';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { createAccessToken } from './access-token.js';
+import { createCompactAccessToken } from './access-token.js';
 import { downloadTelegramFile, extractMedia, extractText } from './media.js';
 
 const durations = [
@@ -36,9 +36,9 @@ export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir 
     if (!isAdmin(ctx, adminIds)) return ctx.answerCbQuery('Нет доступа.');
 
     const months = Number(ctx.match[1]);
-    const token = createAccessToken({ months, secret: getAccessSecret() });
+    const token = createCompactAccessToken({ months, secret: getAccessSecret() });
     const baseUrl = readPublicBaseUrl(publicBaseUrl);
-    const url = `${baseUrl.replace(/\/$/, '')}/?k=${token}`;
+    const url = `${baseUrl.replace(/\/$/, '')}/a/${token}`;
 
     await ctx.answerCbQuery('Ссылка создана');
     await ctx.deleteMessage().catch(() => {});
