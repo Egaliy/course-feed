@@ -116,7 +116,7 @@ async function handleUpdate({ update, botToken }) {
   if (text.startsWith('/topic_add')) {
     await deleteMessage({ botToken, chatId, messageId: message.message_id });
     const label = text.replace('/topic_add', '').trim();
-    await createTopicFromCommand({ botToken, chatId, userId, label });
+    await createTopicFromCommand({ botToken, chatId, label });
     return;
   }
 
@@ -264,7 +264,7 @@ async function sendTopicPicker({ botToken, chatId, userId }) {
   });
 }
 
-async function createTopicFromCommand({ botToken, chatId, userId, label }) {
+async function createTopicFromCommand({ botToken, chatId, label }) {
   if (!label) {
     await sendMessage({ botToken, chatId, text: 'Напишите так: /topic_add Название раздела' });
     return;
@@ -276,11 +276,10 @@ async function createTopicFromCommand({ botToken, chatId, userId, label }) {
   }
 
   const topic = await addBlobTopic(label);
-  await setAdminTopicSelection(userId, topic.id);
   await sendMessage({
     botToken,
     chatId,
-    text: `Раздел добавлен и выбран для следующих публикаций: ${topic.label}`
+    text: `Раздел добавлен: ${topic.label}`
   });
 }
 
