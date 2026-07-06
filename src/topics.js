@@ -1,12 +1,12 @@
 export const defaultTopics = [
   { id: 'meditations', label: 'Медитации' },
-  { id: 'body-practices', label: 'Телесные практики' },
-  { id: 'audio-podcasts', label: 'Аудио подкасты' },
+  { id: 'body-practices', label: 'Телесные практики', shortLabel: 'Практики' },
+  { id: 'audio-podcasts', label: 'Аудио подкасты', shortLabel: 'Подкасты' },
   { id: 'psychosomatics', label: 'Психосоматика', parentId: 'audio-podcasts' },
-  { id: 'alexandra-lives', label: 'Эфиры с Александрой Борисовой' },
-  { id: 'guest-lives', label: 'Эфиры с приглашенными спикерами' },
-  { id: 'text-files', label: 'Текстовые файлы' },
-  { id: 'future-moms', label: 'Для будущих мам' },
+  { id: 'alexandra-lives', label: 'Эфиры с Александрой Борисовой', shortLabel: 'Эфиры с Александрой' },
+  { id: 'guest-lives', label: 'Эфиры с приглашенными спикерами', shortLabel: 'Эфиры со спикерами' },
+  { id: 'text-files', label: 'Текстовые файлы', shortLabel: 'Тексты' },
+  { id: 'future-moms', label: 'Для будущих мам', shortLabel: 'Будущим мамам' },
   { id: 'other', label: 'Прочее' }
 ];
 
@@ -22,6 +22,7 @@ export function normalizeTopics(topics = []) {
     result.push({
       id,
       label,
+      shortLabel: String(topic?.shortLabel || topic?.label || '').trim(),
       parentId: topic?.parentId ? normalizeTopicId(topic.parentId) : ''
     });
     seen.add(id);

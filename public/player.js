@@ -234,7 +234,7 @@ function saveDownloadedFiles(files) {
 }
 
 function updateUnreadTabs() {
-  const nav = document.querySelector('.content-tabs[data-unread-posts]');
+  const nav = document.querySelector('.content-nav[data-unread-posts]');
   if (!nav) return;
 
   const posts = readUnreadPosts(nav);

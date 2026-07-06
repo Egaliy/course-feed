@@ -196,13 +196,12 @@ textarea {
   gap: 12px;
 }
 
-.content-tabs {
+.content-nav {
   position: sticky;
   top: 0;
   z-index: 5;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(142px, 1fr));
-  gap: 8px;
+  gap: 7px;
   margin: 0 0 18px;
   padding: 8px;
   border: 1px solid var(--line);
@@ -212,34 +211,74 @@ textarea {
   backdrop-filter: blur(14px);
 }
 
-.content-tabs a {
+.content-tabs,
+.subtopic-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(79, 127, 186, 0.42) transparent;
+  scroll-snap-type: x proximity;
+}
+
+.content-tabs::-webkit-scrollbar,
+.subtopic-tabs::-webkit-scrollbar {
+  height: 6px;
+}
+
+.content-tabs::-webkit-scrollbar-thumb,
+.subtopic-tabs::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(79, 127, 186, 0.28);
+}
+
+.content-tabs a,
+.subtopic-tabs a {
   display: grid;
   place-items: center;
   gap: 2px;
-  min-height: 66px;
+  flex: 0 0 124px;
+  min-height: 62px;
   padding: 8px 6px;
   border-radius: 12px;
   color: var(--secondary);
   font-size: 13px;
   font-weight: 850;
   text-align: center;
+  scroll-snap-align: start;
 }
 
-.content-tabs a.is-subtopic {
+.subtopic-tabs {
+  padding-top: 2px;
+}
+
+.subtopic-tabs a {
+  flex-basis: 148px;
+  min-height: 48px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  justify-items: start;
+  gap: 7px;
+  padding: 8px 10px;
   background: rgba(79, 127, 186, 0.07);
+  font-size: 12px;
+  text-align: left;
 }
 
-.content-tabs a.is-subtopic span::before {
-  content: "↳ ";
-  color: var(--blue);
-}
-
-.content-tabs a:hover {
+.content-tabs a:hover,
+.subtopic-tabs a:hover {
   background: var(--blue-soft);
   color: var(--blue);
 }
 
-.content-tabs a[aria-current="page"] {
+.content-tabs a.is-parent-active {
+  background: rgba(79, 127, 186, 0.13);
+  color: var(--blue);
+}
+
+.content-tabs a[aria-current="page"],
+.subtopic-tabs a[aria-current="page"] {
   background: var(--blue);
   color: #fff;
   box-shadow: 0 8px 18px rgba(79, 127, 186, 0.24);
@@ -257,7 +296,8 @@ textarea {
   opacity: 0.84;
 }
 
-.content-tabs b {
+.content-tabs b,
+.subtopic-tabs b {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -270,23 +310,28 @@ textarea {
   font-weight: 850;
 }
 
-.content-tabs b.has-unread {
+.content-tabs b.has-unread,
+.subtopic-tabs b.has-unread {
   color: var(--blue);
 }
 
-.content-tabs span {
+.content-tabs span,
+.subtopic-tabs span {
   line-height: 1.1;
 }
 
-.content-tabs a[aria-current="page"] b {
+.content-tabs a[aria-current="page"] b,
+.subtopic-tabs a[aria-current="page"] b {
   color: rgba(255, 255, 255, 0.78);
 }
 
-.content-tabs a[aria-current="page"] b.has-unread {
+.content-tabs a[aria-current="page"] b.has-unread,
+.subtopic-tabs a[aria-current="page"] b.has-unread {
   color: #fff;
 }
 
-.content-tabs a[aria-current="page"] .tab-icon {
+.content-tabs a[aria-current="page"] .tab-icon,
+.subtopic-tabs a[aria-current="page"] .tab-icon {
   opacity: 1;
 }
 
@@ -1864,17 +1909,21 @@ textarea {
     gap: 10px;
   }
 
-  .content-tabs {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .content-nav {
     gap: 6px;
     margin-bottom: 16px;
     padding: 6px;
-    overflow: visible;
   }
 
   .content-tabs a {
-    min-height: 62px;
+    flex-basis: 108px;
+    min-height: 58px;
     font-size: 12px;
+  }
+
+  .subtopic-tabs a {
+    flex-basis: 138px;
+    min-height: 46px;
   }
 
   .tab-icon {

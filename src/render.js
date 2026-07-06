@@ -287,30 +287,60 @@ function renderEmptyIcon(view) {
 function renderContentNav({ posts, activeView, token = '', topics = [] }) {
   const topicItems = normalizeTopics(topics);
   const counts = getViewCounts(posts, topicItems);
+  const activeTopic = topicItems.find((topic) => topic.id === activeView);
+  const activeParentId = activeTopic?.parentId || activeView;
+  const childItems = topicItems.filter((topic) => topic.parentId === activeParentId);
   const unreadData = posts.map((post) => ({
     id: post.id,
     views: getPostViews(post, topicItems)
   }));
   const items = [
     { view: 'all', label: 'Все', count: posts.length, parentId: '' },
-    ...topicItems.map((topic) => ({
+    ...topicItems.filter((topic) => !topic.parentId).map((topic) => ({
       view: topic.id,
       label: topic.label,
+      shortLabel: topic.shortLabel || topic.label,
       count: counts[topic.id] || 0,
-      parentId: topic.parentId || ''
+      parentId: ''
     }))
   ];
 
   return `
-    <nav class="content-tabs" aria-label="Разделы курса" data-unread-posts="${escapeHtml(JSON.stringify(unreadData))}">
-      ${items.map((item) => `
-        <a class="${item.parentId ? 'is-subtopic' : ''}" href="${escapeHtml(buildViewHref({ view: item.view, token }))}" data-view="${escapeHtml(item.view)}" ${item.view === activeView ? 'aria-current="page"' : ''}>
-          ${renderTabIcon(item.view)}
-          <span>${item.label}</span>
-          <b>${item.count}</b>
-        </a>
-      `).join('')}
-    </nav>
+    <div class="content-nav" data-unread-posts="${escapeHtml(JSON.stringify(unreadData))}">
+      <nav class="content-tabs" aria-label="Разделы курса">
+        ${items.map((item) => renderNavItem({
+          item,
+          token,
+          current: item.view === activeView,
+          parentActive: item.view === activeParentId && item.view !== activeView
+        })).join('')}
+      </nav>
+      ${childItems.length ? `
+        <nav class="subtopic-tabs" aria-label="Подразделы">
+          ${childItems.map((topic) => renderNavItem({
+            item: {
+              view: topic.id,
+              label: topic.label,
+              shortLabel: topic.shortLabel || topic.label,
+              count: counts[topic.id] || 0,
+              parentId: topic.parentId
+            },
+            token,
+            current: topic.id === activeView
+          })).join('')}
+        </nav>
+      ` : ''}
+    </div>
+  `;
+}
+
+function renderNavItem({ item, token, current, parentActive = false }) {
+  return `
+    <a class="${[item.parentId ? 'is-subtopic' : '', parentActive ? 'is-parent-active' : ''].filter(Boolean).join(' ')}" href="${escapeHtml(buildViewHref({ view: item.view, token }))}" data-view="${escapeHtml(item.view)}" ${current ? 'aria-current="page"' : ''}>
+      ${renderTabIcon(item.view)}
+      <span title="${escapeHtml(item.label)}">${escapeHtml(item.shortLabel || item.label)}</span>
+      <b>${item.count}</b>
+    </a>
   `;
 }
 
