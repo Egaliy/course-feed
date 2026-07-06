@@ -29,6 +29,7 @@ export default async function handler(req, res) {
       title,
       posts: getPosts(state),
       adminKey: getSiteAdminKey(),
+      topics: state.topics,
       notice
     }));
     return;
@@ -37,7 +38,7 @@ export default async function handler(req, res) {
   const token = getAccessToken(req);
   const access = token ? getAccess(token, state) : null;
   const html = access && isActiveAccess(access)
-    ? renderFeedPage({ title, posts: getPosts(state), access, token, view: req.query.view })
+    ? renderFeedPage({ title, posts: getPosts(state), access, token, view: req.query.view, topics: state.topics })
     : renderRegistrationPage({ title, state: access ? 'expired' : 'default' });
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
@@ -105,8 +106,8 @@ function isActiveAccess(access) {
 
 function getTitle() {
   const value = String(process.env.COURSE_TITLE || '').trim();
-  if (!value || value.includes('?') || value.includes('Р')) {
-    return 'Лента курса';
+  if (!value || value.includes('?') || value.includes('Р') || value.toLowerCase() === 'лента курса') {
+    return 'Онлайн-пространство';
   }
   return value;
 }

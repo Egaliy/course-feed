@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import path from 'node:path';
 import { get, put } from '@vercel/blob';
+import { getTopicById, normalizeTopicId, normalizeTopics, slugifyTopic } from './topics.js';
 
 const dbPathname = 'data/db.json';
 const telegramFileBase = 'https://api.telegram.org/file/bot';
@@ -10,7 +11,9 @@ export const defaultState = {
   accessLinks: [],
   registrations: [],
   students: [],
-  adminCodes: []
+  adminCodes: [],
+  topics: [],
+  adminTopicSelections: {}
 };
 
 export function hasBlobStorage() {
@@ -58,6 +61,44 @@ export async function addBlobPost(input) {
   state.posts.push(post);
   await writeBlobState(state);
   return post;
+}
+
+export async function getBlobTopics() {
+  const state = await readBlobState();
+  return normalizeTopics(state.topics);
+}
+
+export async function addBlobTopic(label) {
+  const state = await readBlobState();
+  const topicLabel = String(label || '').trim();
+  if (!topicLabel) throw new Error('Topic label is empty');
+
+  const topics = normalizeTopics(state.topics);
+  const id = uniqueTopicId(topics, slugifyTopic(topicLabel));
+  const topic = { id, label: topicLabel };
+
+  state.topics = [...(state.topics || []), topic];
+  await writeBlobState(state);
+  return topic;
+}
+
+export async function setAdminTopicSelection(adminId, topicId) {
+  const state = await readBlobState();
+  const topics = normalizeTopics(state.topics);
+  const topic = getTopicById(topics, topicId);
+
+  state.adminTopicSelections = {
+    ...(state.adminTopicSelections || {}),
+    [String(adminId)]: topic.id
+  };
+  await writeBlobState(state);
+  return topic;
+}
+
+export async function getAdminTopicSelection(adminId) {
+  const state = await readBlobState();
+  const topicId = state.adminTopicSelections?.[String(adminId)] || 'other';
+  return getTopicById(state.topics, topicId);
 }
 
 export async function deleteBlobPost(id) {
@@ -143,8 +184,26 @@ function normalizeState(state) {
     accessLinks: Array.isArray(state?.accessLinks) ? state.accessLinks : [],
     registrations: Array.isArray(state?.registrations) ? state.registrations : [],
     students: Array.isArray(state?.students) ? state.students : [],
-    adminCodes: Array.isArray(state?.adminCodes) ? state.adminCodes : []
+    adminCodes: Array.isArray(state?.adminCodes) ? state.adminCodes : [],
+    topics: Array.isArray(state?.topics) ? state.topics : [],
+    adminTopicSelections: state?.adminTopicSelections && typeof state.adminTopicSelections === 'object'
+      ? state.adminTopicSelections
+      : {}
   };
+}
+
+function uniqueTopicId(topics, baseId) {
+  const existing = new Set(topics.map((topic) => topic.id));
+  const normalized = normalizeTopicId(baseId) || `topic-${Date.now().toString(36)}`;
+  let id = normalized;
+  let index = 2;
+
+  while (existing.has(id)) {
+    id = `${normalized}-${index}`;
+    index += 1;
+  }
+
+  return id;
 }
 
 function withBlobToken(options = {}) {

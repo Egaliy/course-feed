@@ -43,6 +43,7 @@ app.get('/', async (req, res) => {
       title,
       posts: getPosts(state),
       adminKey: getSiteAdminKey(),
+      topics: state.topics,
       notice: String(req.query.notice || '')
     }));
     return;
@@ -65,7 +66,7 @@ app.get('/', async (req, res) => {
     return;
   }
 
-  res.send(renderFeedPage({ title, posts: getPosts(state), access, token, view: req.query.view }));
+  res.send(renderFeedPage({ title, posts: getPosts(state), access, token, view: req.query.view, topics: state.topics }));
 });
 
 app.post('/', async (req, res) => {
@@ -116,7 +117,7 @@ app.get('/a/:token', async (req, res) => {
     return;
   }
 
-  res.send(renderFeedPage({ title, posts: getPosts(state), access, token: req.params.token, view: req.query.view }));
+  res.send(renderFeedPage({ title, posts: getPosts(state), access, token: req.params.token, view: req.query.view, topics: state.topics }));
 });
 
 app.listen(port, () => {
@@ -125,8 +126,8 @@ app.listen(port, () => {
 
 function getTitle() {
   const value = String(process.env.COURSE_TITLE || '').trim();
-  if (!value || value.includes('?') || value.includes('Р')) {
-    return 'Лента курса';
+  if (!value || value.includes('?') || value.includes('Р') || value.toLowerCase() === 'лента курса') {
+    return 'Онлайн-пространство';
   }
   return value;
 }
@@ -140,7 +141,10 @@ if (!botToken || !adminIds.length) {
   const me = await bot.telegram.getMe();
   try {
     await bot.telegram.setMyCommands([
-      { command: 'link', description: 'Создать ссылку доступа' }
+      { command: 'link', description: 'Создать ссылку доступа' },
+      { command: 'manage', description: 'Управление материалами' },
+      { command: 'topic', description: 'Выбрать раздел публикаций' },
+      { command: 'help', description: 'Подсказка по боту' }
     ]);
   } catch (error) {
     console.warn('Could not update Telegram bot commands:', error.message);

@@ -201,7 +201,7 @@ textarea {
   top: 0;
   z-index: 5;
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(142px, 1fr));
   gap: 8px;
   margin: 0 0 18px;
   padding: 8px;
@@ -216,13 +216,22 @@ textarea {
   display: grid;
   place-items: center;
   gap: 2px;
-  min-height: 64px;
+  min-height: 66px;
   padding: 8px 6px;
   border-radius: 12px;
   color: var(--secondary);
   font-size: 13px;
   font-weight: 850;
   text-align: center;
+}
+
+.content-tabs a.is-subtopic {
+  background: rgba(79, 127, 186, 0.07);
+}
+
+.content-tabs a.is-subtopic span::before {
+  content: "↳ ";
+  color: var(--blue);
 }
 
 .content-tabs a:hover {
@@ -1856,7 +1865,7 @@ textarea {
   }
 
   .content-tabs {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 6px;
     margin-bottom: 16px;
     padding: 6px;
@@ -1864,7 +1873,7 @@ textarea {
   }
 
   .content-tabs a {
-    min-height: 58px;
+    min-height: 62px;
     font-size: 12px;
   }
 

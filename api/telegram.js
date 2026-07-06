@@ -1,7 +1,11 @@
 import { createCompactAccessToken } from '../src/access-token.js';
 import {
   addBlobPost,
+  addBlobTopic,
+  getAdminTopicSelection,
+  getBlobTopics,
   hasBlobStorage,
+  setAdminTopicSelection,
   uploadTelegramFileToBlob
 } from '../src/blob-storage.js';
 import { extractMedia, extractText } from '../src/media.js';
@@ -100,6 +104,19 @@ async function handleUpdate({ update, botToken }) {
     return;
   }
 
+  if (text === '/topic') {
+    await deleteMessage({ botToken, chatId, messageId: message.message_id });
+    await sendTopicPicker({ botToken, chatId, userId });
+    return;
+  }
+
+  if (text.startsWith('/topic_add')) {
+    await deleteMessage({ botToken, chatId, messageId: message.message_id });
+    const label = text.replace('/topic_add', '').trim();
+    await createTopicFromCommand({ botToken, chatId, userId, label });
+    return;
+  }
+
   if (text.startsWith('/')) return;
 
   await publishMessage({ message, botToken, chatId });
@@ -129,11 +146,12 @@ async function publishMessage({ message, botToken, chatId }) {
   const text = extractText(message);
   if (!text && !media.length) return;
 
-  const post = await addBlobPost({ text, media });
+  const topic = await getAdminTopicSelection(message.from?.id);
+  const post = await addBlobPost({ text, media, topicId: topic.id });
   await sendMessage({
     botToken,
     chatId,
-    text: `Опубликовано.\nМатериал: ${describePost(post)}`
+    text: `Опубликовано.\nРаздел: ${topic.label}\nМатериал: ${describePost(post)}`
   });
 }
 
@@ -145,6 +163,15 @@ async function handleCallback({ callback, botToken }) {
 
   if (!isAdmin(userId)) {
     await answerCallback({ botToken, callbackId: callback.id, text: 'Нет доступа.' });
+    return;
+  }
+
+  const topicMatch = payload.match(/^topic:([A-Za-z0-9_-]+)$/);
+  if (topicMatch) {
+    const topic = await setAdminTopicSelection(userId, topicMatch[1]);
+    await answerCallback({ botToken, callbackId: callback.id, text: `Раздел: ${topic.label}` });
+    await deleteMessage({ botToken, chatId, messageId: callback.message.message_id });
+    await sendMessage({ botToken, chatId, text: `Активный раздел для новых публикаций: ${topic.label}` });
     return;
   }
 
@@ -184,10 +211,56 @@ async function sendHelpMessage({ botToken, chatId }) {
       '',
       '/link - создать ссылку доступа на 1, 3, 6 или 9 месяцев',
       '/manage - открыть управление материалами на сайте',
+      '/topic - выбрать раздел для следующих публикаций',
+      '/topic_add Название - добавить новый раздел',
       '/help - показать эту подсказку',
       '',
       'Чтобы опубликовать материал, просто отправьте текст, фото, видео, голосовое или файл в этот чат.'
     ].join('\n')
+  });
+}
+
+async function sendTopicPicker({ botToken, chatId, userId }) {
+  if (!hasBlobStorage()) {
+    await sendMessage({ botToken, chatId, text: 'Хранилище Vercel Blob еще не подключено.' });
+    return;
+  }
+
+  const [topics, active] = await Promise.all([
+    getBlobTopics(),
+    getAdminTopicSelection(userId)
+  ]);
+
+  await sendMessage({
+    botToken,
+    chatId,
+    text: `Выберите раздел для следующих публикаций.\nСейчас: ${active.label}`,
+    replyMarkup: {
+      inline_keyboard: topics.map((topic) => [{
+        text: topic.id === active.id ? `✓ ${topic.label}` : topic.label,
+        callback_data: `topic:${topic.id}`
+      }])
+    }
+  });
+}
+
+async function createTopicFromCommand({ botToken, chatId, userId, label }) {
+  if (!label) {
+    await sendMessage({ botToken, chatId, text: 'Напишите так: /topic_add Название раздела' });
+    return;
+  }
+
+  if (!hasBlobStorage()) {
+    await sendMessage({ botToken, chatId, text: 'Хранилище Vercel Blob еще не подключено.' });
+    return;
+  }
+
+  const topic = await addBlobTopic(label);
+  await setAdminTopicSelection(userId, topic.id);
+  await sendMessage({
+    botToken,
+    chatId,
+    text: `Раздел добавлен и выбран для следующих публикаций: ${topic.label}`
   });
 }
 

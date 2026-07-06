@@ -1,25 +1,21 @@
-const views = [
-  { id: 'all', heading: 'Лента', empty: 'Здесь пока нет публикаций.' },
-  { id: 'photo', heading: 'Фото', empty: 'Фото пока нет.' },
-  { id: 'audio', heading: 'Голосовые', empty: 'Голосовых пока нет.' },
-  { id: 'video', heading: 'Видео', empty: 'Видео пока нет.' },
-  { id: 'file', heading: 'Файлы', empty: 'Файлов пока нет.' }
-];
+import { getTopicById, normalizeTopics } from './topics.js';
+
 const courseTimeZone = getCourseTimeZone();
 
-export function renderFeedPage({ title, posts, access, token = '', view = 'all' }) {
-  const activeView = normalizeView(view);
-  const visiblePosts = filterPostsByView(posts, activeView);
-  const items = renderPosts(visiblePosts);
-  const nav = renderContentNav({ posts, activeView, token });
-  const heading = getView(activeView).heading;
-  const empty = getView(activeView).empty;
+export function renderFeedPage({ title, posts, access, token = '', view = 'all', topics = [] }) {
+  const topicItems = normalizeTopics(topics);
+  const activeView = normalizeView(view, topicItems);
+  const visiblePosts = filterPostsByView(posts, activeView, topicItems);
+  const items = renderPosts(visiblePosts, topicItems);
+  const nav = renderContentNav({ posts, activeView, token, topics: topicItems });
+  const heading = getView(activeView, topicItems).heading;
+  const empty = getView(activeView, topicItems).empty;
 
   return page(title, `
     <main class="feed-shell">
       <header class="feed-header">
         <div>
-          <p class="eyebrow">Закрытая лента</p>
+          <p class="eyebrow">Закрытое онлайн-пространство</p>
           <h1>${escapeHtml(title)}</h1>
         </div>
         <div class="access-stack">
@@ -43,8 +39,9 @@ export function renderFeedPage({ title, posts, access, token = '', view = 'all' 
   `);
 }
 
-export function renderManagePage({ title, posts, adminKey, notice = '' }) {
+export function renderManagePage({ title, posts, adminKey, notice = '', topics = [] }) {
   const sortedPosts = [...(posts || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const topicItems = normalizeTopics(topics);
 
   return page(`Управление - ${title}`, `
     <main class="feed-shell manage-shell">
@@ -67,7 +64,7 @@ export function renderManagePage({ title, posts, adminKey, notice = '' }) {
             <button class="danger-button" type="submit">Удалить выбранное</button>
           </div>
           <div class="feed">
-            ${sortedPosts.map(renderManagePost).join('')}
+            ${sortedPosts.map((post) => renderManagePost(post, topicItems)).join('')}
           </div>
         </form>
       ` : renderEmptyState('Материалов пока нет.', 'all')}
@@ -75,19 +72,20 @@ export function renderManagePage({ title, posts, adminKey, notice = '' }) {
   `);
 }
 
-export function renderPublicFeedPage({ title, posts, view = 'all' }) {
-  const activeView = normalizeView(view);
-  const visiblePosts = filterPostsByView(posts, activeView);
-  const items = renderPosts(visiblePosts);
-  const nav = renderContentNav({ posts, activeView });
-  const heading = getView(activeView).heading;
-  const empty = getView(activeView).empty;
+export function renderPublicFeedPage({ title, posts, view = 'all', topics = [] }) {
+  const topicItems = normalizeTopics(topics);
+  const activeView = normalizeView(view, topicItems);
+  const visiblePosts = filterPostsByView(posts, activeView, topicItems);
+  const items = renderPosts(visiblePosts, topicItems);
+  const nav = renderContentNav({ posts, activeView, topics: topicItems });
+  const heading = getView(activeView, topicItems).heading;
+  const empty = getView(activeView, topicItems).empty;
 
   return page(title, `
     <main class="feed-shell">
       <header class="feed-header">
         <div>
-          <p class="eyebrow">Лента курса</p>
+          <p class="eyebrow">Онлайн-пространство</p>
           <h1>${escapeHtml(title)}</h1>
         </div>
       </header>
@@ -148,7 +146,7 @@ export function renderExpiredPage({ title }) {
     <main class="state-page expired-shell">
       <section class="state-card expired-card">
         ${renderExpiredIcon()}
-        <p class="eyebrow">Лента курса</p>
+        <p class="eyebrow">Онлайн-пространство</p>
         <h1>Доступ завершился</h1>
         <p>Срок действия ссылки истек. Напишите Александре в Telegram, чтобы продлить доступ и получить новую ссылку.</p>
         <a class="admin-link state-link" href="https://t.me/BorisovaAleksandraP" target="_blank" rel="noreferrer">Продлить доступ</a>
@@ -180,14 +178,14 @@ export function renderMissingPage({ title }) {
   `);
 }
 
-function renderPosts(posts) {
+function renderPosts(posts, topics = []) {
   let lastDay = '';
 
   return posts.map((post) => {
     const day = formatDay(post.createdAt);
     const divider = day !== lastDay ? renderDateDivider(day) : '';
     lastDay = day;
-    return `${divider}${renderPost(post)}`;
+    return `${divider}${renderPost(post, topics)}`;
   }).join('');
 }
 
@@ -286,24 +284,27 @@ function renderEmptyIcon(view) {
   `;
 }
 
-function renderContentNav({ posts, activeView, token = '' }) {
-  const counts = getViewCounts(posts);
+function renderContentNav({ posts, activeView, token = '', topics = [] }) {
+  const topicItems = normalizeTopics(topics);
+  const counts = getViewCounts(posts, topicItems);
   const unreadData = posts.map((post) => ({
     id: post.id,
-    views: getPostViews(post)
+    views: getPostViews(post, topicItems)
   }));
   const items = [
-    { view: 'all', label: 'Лента', count: posts.length },
-    { view: 'photo', label: 'Фото', count: counts.photo },
-    { view: 'audio', label: 'Голосовые', count: counts.audio },
-    { view: 'video', label: 'Видео', count: counts.video },
-    { view: 'file', label: 'Файлы', count: counts.file }
+    { view: 'all', label: 'Все', count: posts.length, parentId: '' },
+    ...topicItems.map((topic) => ({
+      view: topic.id,
+      label: topic.label,
+      count: counts[topic.id] || 0,
+      parentId: topic.parentId || ''
+    }))
   ];
 
   return `
     <nav class="content-tabs" aria-label="Разделы курса" data-unread-posts="${escapeHtml(JSON.stringify(unreadData))}">
       ${items.map((item) => `
-        <a href="${escapeHtml(buildViewHref({ view: item.view, token }))}" data-view="${escapeHtml(item.view)}" ${item.view === activeView ? 'aria-current="page"' : ''}>
+        <a class="${item.parentId ? 'is-subtopic' : ''}" href="${escapeHtml(buildViewHref({ view: item.view, token }))}" data-view="${escapeHtml(item.view)}" ${item.view === activeView ? 'aria-current="page"' : ''}>
           ${renderTabIcon(item.view)}
           <span>${item.label}</span>
           <b>${item.count}</b>
@@ -313,13 +314,22 @@ function renderContentNav({ posts, activeView, token = '' }) {
   `;
 }
 
-function getViewCounts(posts) {
+function getViewCounts(posts, topics = []) {
+  const topicItems = normalizeTopics(topics);
+  const parentByChild = Object.fromEntries(
+    topicItems
+      .filter((topic) => topic.parentId)
+      .map((topic) => [topic.id, topic.parentId])
+  );
+
   return posts.reduce((counts, post) => {
-    getPostViews(post).forEach((view) => {
-      if (view !== 'all') counts[view] += 1;
-    });
+    const topicId = getPostTopicId(post, topicItems);
+    counts[topicId] = (counts[topicId] || 0) + 1;
+    if (parentByChild[topicId]) {
+      counts[parentByChild[topicId]] = (counts[parentByChild[topicId]] || 0) + 1;
+    }
     return counts;
-  }, { photo: 0, audio: 0, video: 0, file: 0 });
+  }, Object.fromEntries(topicItems.map((topic) => [topic.id, 0])));
 }
 
 function renderTabIcon(view) {
@@ -328,7 +338,16 @@ function renderTabIcon(view) {
     photo: '<rect x="3.5" y="5" width="17" height="14" rx="3"></rect><path d="m7 15 3.2-3.2a1.4 1.4 0 0 1 2 0L16 15.5"></path><path d="m14.5 13.5 1.3-1.3a1.4 1.4 0 0 1 2 0L20.5 15"></path><circle cx="8.5" cy="9.2" r="1.2"></circle>',
     audio: '<path d="M12 4v16"></path><path d="M8 8v8"></path><path d="M16 8v8"></path><path d="M4 11v2"></path><path d="M20 11v2"></path>',
     video: '<rect x="3.5" y="6" width="12.5" height="12" rx="3"></rect><path d="m16 10 4.5-2.5v9L16 14"></path>',
-    file: '<path d="M7 3.5h6l4 4V20a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 6 20V5A1.5 1.5 0 0 1 7.5 3.5Z"></path><path d="M13 3.5V8h4"></path><path d="M9 13h6"></path><path d="M9 17h4"></path>'
+    file: '<path d="M7 3.5h6l4 4V20a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 6 20V5A1.5 1.5 0 0 1 7.5 3.5Z"></path><path d="M13 3.5V8h4"></path><path d="M9 13h6"></path><path d="M9 17h4"></path>',
+    meditations: '<path d="M12 4.5c3 2.2 4.5 4.6 4.5 7.2A4.5 4.5 0 0 1 12 16.2a4.5 4.5 0 0 1-4.5-4.5C7.5 9.1 9 6.7 12 4.5Z"></path><path d="M6 20h12"></path>',
+    'body-practices': '<path d="M12 5.5a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z"></path><path d="M5 13h14"></path><path d="M8 20l4-7 4 7"></path>',
+    'audio-podcasts': '<path d="M8 11a4 4 0 0 1 8 0v3a4 4 0 0 1-8 0Z"></path><path d="M12 18v3"></path><path d="M9 21h6"></path>',
+    psychosomatics: '<path d="M12 20c4-3.2 7-6 7-9.5A3.5 3.5 0 0 0 12.5 8L12 8.6 11.5 8A3.5 3.5 0 0 0 5 10.5C5 14 8 16.8 12 20Z"></path><path d="M9 12h2l1 2 1.5-4 1 2H16"></path>',
+    'alexandra-lives': '<rect x="4" y="6" width="16" height="12" rx="3"></rect><path d="m10 10 5 2-5 2Z"></path>',
+    'guest-lives': '<path d="M8 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"></path><path d="M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"></path><path d="M3.5 20a4.5 4.5 0 0 1 9 0"></path><path d="M11.5 20a4.5 4.5 0 0 1 9 0"></path>',
+    'text-files': '<path d="M7 3.5h6l4 4V20a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 6 20V5A1.5 1.5 0 0 1 7.5 3.5Z"></path><path d="M13 3.5V8h4"></path><path d="M9 13h6"></path><path d="M9 17h4"></path>',
+    'future-moms': '<path d="M12 21c4-4 7-7.2 7-11a4 4 0 0 0-7-2.6A4 4 0 0 0 5 10c0 3.8 3 7 7 11Z"></path><circle cx="12" cy="13" r="2.2"></circle>',
+    other: '<path d="M5 7h14"></path><path d="M5 12h14"></path><path d="M5 17h8"></path>'
   };
 
   return `
@@ -356,15 +375,17 @@ function getMediaGroups(posts) {
   return groups;
 }
 
-function filterPostsByView(posts, view) {
+function filterPostsByView(posts, view, topics = []) {
   if (view === 'all') return posts;
+  const topicItems = normalizeTopics(topics);
+  const childIds = topicItems
+    .filter((topic) => topic.parentId === view)
+    .map((topic) => topic.id);
 
-  return posts
-    .map((post) => {
-      const media = (post.media || []).filter((item) => getMediaView(item) === view);
-      return media.length ? { ...post, media } : null;
-    })
-    .filter(Boolean);
+  return posts.filter((post) => {
+    const topicId = getPostTopicId(post, topicItems);
+    return topicId === view || childIds.includes(topicId);
+  });
 }
 
 function getMediaView(item) {
@@ -374,13 +395,26 @@ function getMediaView(item) {
   return 'file';
 }
 
-function normalizeView(value) {
+function normalizeView(value, topics = []) {
   const view = String(value || 'all').trim();
-  return views.some((item) => item.id === view) ? view : 'all';
+  return view === 'all' || normalizeTopics(topics).some((item) => item.id === view) ? view : 'all';
 }
 
-function getView(id) {
-  return views.find((item) => item.id === id) || views[0];
+function getView(id, topics = []) {
+  if (id === 'all') {
+    return {
+      id: 'all',
+      heading: 'Онлайн-пространство',
+      empty: 'Здесь пока нет публикаций.'
+    };
+  }
+
+  const topic = getTopicById(topics, id);
+  return {
+    id: topic.id,
+    heading: topic.label,
+    empty: `${topic.label}: материалов пока нет.`
+  };
 }
 
 function buildViewHref({ view, token }) {
@@ -401,12 +435,12 @@ function isShortAccessToken(token) {
   return /^[A-Za-z0-9_.-]{6,64}$/.test(String(token || ''));
 }
 
-function renderPost(post) {
+function renderPost(post, topics = []) {
   const text = post.text ? `<div class="post-text">${linkify(escapeHtml(post.text))}</div>` : '';
   const media = post.media?.length ? `<div class="media-grid">${post.media.map(renderMedia).join('')}</div>` : '';
 
   return `
-    <article class="post" data-post-id="${escapeHtml(post.id)}" data-post-views="${escapeHtml(getPostViews(post).join(','))}">
+    <article class="post" data-post-id="${escapeHtml(post.id)}" data-post-views="${escapeHtml(getPostViews(post, topics).join(','))}">
       <div class="post-body">
         <span class="new-badge" hidden>Новое</span>
         ${text}
@@ -457,10 +491,17 @@ function getPostPreview(post) {
   return media.length > 1 ? `${first} +${media.length - 1}` : first;
 }
 
-function getPostViews(post) {
-  const views = new Set(['all']);
-  (post.media || []).forEach((item) => views.add(getMediaView(item)));
-  return [...views];
+function getPostViews(post, topics = []) {
+  const topicItems = normalizeTopics(topics);
+  const topicId = getPostTopicId(post, topicItems);
+  const parentId = topicItems.find((topic) => topic.id === topicId)?.parentId;
+  return parentId ? ['all', parentId, topicId] : ['all', topicId];
+}
+
+function getPostTopicId(post, topics = []) {
+  const topicId = String(post.topicId || '').trim();
+  if (topicId && normalizeTopics(topics).some((topic) => topic.id === topicId)) return topicId;
+  return 'other';
 }
 
 function renderMedia(item) {
