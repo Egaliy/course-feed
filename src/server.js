@@ -143,7 +143,7 @@ if (!botToken || !adminIds.length) {
     await bot.telegram.setMyCommands([
       { command: 'link', description: 'Создать ссылку доступа' },
       { command: 'manage', description: 'Управление материалами' },
-      { command: 'topic', description: 'Выбрать раздел публикаций' },
+      { command: 'topic_add', description: 'Добавить раздел' },
       { command: 'help', description: 'Подсказка по боту' }
     ]);
   } catch (error) {

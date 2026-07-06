@@ -13,7 +13,8 @@ export const defaultState = {
   students: [],
   adminCodes: [],
   topics: [],
-  adminTopicSelections: {}
+  adminTopicSelections: {},
+  pendingPublications: []
 };
 
 export function hasBlobStorage() {
@@ -80,6 +81,35 @@ export async function addBlobTopic(label) {
   state.topics = [...(state.topics || []), topic];
   await writeBlobState(state);
   return topic;
+}
+
+export async function addPendingPublication(input) {
+  const state = await readBlobState();
+  const pending = {
+    id: crypto.randomBytes(8).toString('base64url'),
+    createdAt: new Date().toISOString(),
+    text: '',
+    media: [],
+    adminId: '',
+    chatId: '',
+    ...input
+  };
+
+  state.pendingPublications = [...(state.pendingPublications || []), pending].slice(-50);
+  await writeBlobState(state);
+  return pending;
+}
+
+export async function getPendingPublication(id) {
+  const state = await readBlobState();
+  return (state.pendingPublications || []).find((item) => item.id === String(id || '')) || null;
+}
+
+export async function deletePendingPublication(id) {
+  const state = await readBlobState();
+  const pendingId = String(id || '');
+  state.pendingPublications = (state.pendingPublications || []).filter((item) => item.id !== pendingId);
+  await writeBlobState(state);
 }
 
 export async function setAdminTopicSelection(adminId, topicId) {
@@ -186,6 +216,7 @@ function normalizeState(state) {
     students: Array.isArray(state?.students) ? state.students : [],
     adminCodes: Array.isArray(state?.adminCodes) ? state.adminCodes : [],
     topics: Array.isArray(state?.topics) ? state.topics : [],
+    pendingPublications: Array.isArray(state?.pendingPublications) ? state.pendingPublications : [],
     adminTopicSelections: state?.adminTopicSelections && typeof state.adminTopicSelections === 'object'
       ? state.adminTopicSelections
       : {}

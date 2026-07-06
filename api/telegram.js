@@ -2,8 +2,11 @@ import { createCompactAccessToken } from '../src/access-token.js';
 import {
   addBlobPost,
   addBlobTopic,
+  addPendingPublication,
+  deletePendingPublication,
   getAdminTopicSelection,
   getBlobTopics,
+  getPendingPublication,
   hasBlobStorage,
   setAdminTopicSelection,
   uploadTelegramFileToBlob
@@ -119,10 +122,10 @@ async function handleUpdate({ update, botToken }) {
 
   if (text.startsWith('/')) return;
 
-  await publishMessage({ message, botToken, chatId });
+  await askPublicationTopic({ message, botToken, chatId, userId });
 }
 
-async function publishMessage({ message, botToken, chatId }) {
+async function askPublicationTopic({ message, botToken, chatId, userId }) {
   if (!hasBlobStorage()) {
     await sendMessage({
       botToken,
@@ -132,26 +135,30 @@ async function publishMessage({ message, botToken, chatId }) {
     return;
   }
 
-  const media = [];
-
-  for (const item of extractMedia(message)) {
-    const file = await uploadTelegramFileToBlob({
-      botToken,
-      fileId: item.fileId,
-      name: item.name
-    });
-    media.push({ ...item, ...file });
-  }
-
   const text = extractText(message);
+  const media = extractMedia(message);
   if (!text && !media.length) return;
 
-  const topic = await getAdminTopicSelection(message.from?.id);
-  const post = await addBlobPost({ text, media, topicId: topic.id });
+  const [pending, topics] = await Promise.all([
+    addPendingPublication({
+      adminId: userId,
+      chatId,
+      text,
+      media
+    }),
+    getBlobTopics()
+  ]);
+
   await sendMessage({
     botToken,
     chatId,
-    text: `Опубликовано.\nРаздел: ${topic.label}\nМатериал: ${describePost(post)}`
+    text: `Куда опубликовать: ${describeDraft({ text, media })}?`,
+    replyMarkup: {
+      inline_keyboard: chunkButtons(topics.map((topic, index) => ({
+        text: topic.parentId ? `↳ ${topic.label}` : topic.label,
+        callback_data: `pub:${pending.id}:${index}`
+      })), 1)
+    }
   });
 }
 
@@ -163,6 +170,20 @@ async function handleCallback({ callback, botToken }) {
 
   if (!isAdmin(userId)) {
     await answerCallback({ botToken, callbackId: callback.id, text: 'Нет доступа.' });
+    return;
+  }
+
+  const publishMatch = payload.match(/^pub:([A-Za-z0-9_-]+):(\d+)$/);
+  if (publishMatch) {
+    await publishPendingMessage({
+      botToken,
+      chatId,
+      userId,
+      callbackId: callback.id,
+      messageId: callback.message.message_id,
+      pendingId: publishMatch[1],
+      topicIndex: Number(publishMatch[2])
+    });
     return;
   }
 
@@ -211,11 +232,10 @@ async function sendHelpMessage({ botToken, chatId }) {
       '',
       '/link - создать ссылку доступа на 1, 3, 6 или 9 месяцев',
       '/manage - открыть управление материалами на сайте',
-      '/topic - выбрать раздел для следующих публикаций',
       '/topic_add Название - добавить новый раздел',
       '/help - показать эту подсказку',
       '',
-      'Чтобы опубликовать материал, просто отправьте текст, фото, видео, голосовое или файл в этот чат.'
+      'Чтобы опубликовать материал, отправьте текст, фото, видео, голосовое или файл. Бот спросит, в какой раздел его добавить.'
     ].join('\n')
   });
 }
@@ -261,6 +281,55 @@ async function createTopicFromCommand({ botToken, chatId, userId, label }) {
     botToken,
     chatId,
     text: `Раздел добавлен и выбран для следующих публикаций: ${topic.label}`
+  });
+}
+
+async function publishPendingMessage({ botToken, chatId, userId, callbackId, messageId, pendingId, topicIndex }) {
+  const [pending, topics] = await Promise.all([
+    getPendingPublication(pendingId),
+    getBlobTopics()
+  ]);
+
+  if (!pending) {
+    await answerCallback({ botToken, callbackId, text: 'Материал не найден. Отправьте его еще раз.' });
+    await deleteMessage({ botToken, chatId, messageId });
+    return;
+  }
+
+  if (String(pending.adminId) !== String(userId)) {
+    await answerCallback({ botToken, callbackId, text: 'Это выбор для другого администратора.' });
+    return;
+  }
+
+  const topic = topics[topicIndex];
+  if (!topic) {
+    await answerCallback({ botToken, callbackId, text: 'Раздел не найден.' });
+    return;
+  }
+
+  await answerCallback({ botToken, callbackId, text: 'Публикую...' });
+
+  const media = [];
+  for (const item of pending.media || []) {
+    const file = await uploadTelegramFileToBlob({
+      botToken,
+      fileId: item.fileId,
+      name: item.name
+    });
+    media.push({ ...item, ...file });
+  }
+
+  const post = await addBlobPost({
+    text: pending.text || '',
+    media,
+    topicId: topic.id
+  });
+  await deletePendingPublication(pendingId);
+  await deleteMessage({ botToken, chatId, messageId });
+  await sendMessage({
+    botToken,
+    chatId,
+    text: `Опубликовано.\nРаздел: ${topic.label}\nМатериал: ${describePost(post)}`
   });
 }
 
@@ -376,4 +445,26 @@ function describePost(post) {
   };
   const first = labels[media[0]?.kind] || 'файл';
   return media.length > 1 ? `${first} +${media.length - 1}` : first;
+}
+
+function describeDraft({ text, media }) {
+  const value = String(text || '').trim().replace(/\s+/g, ' ');
+  if (value) return value.length > 34 ? `${value.slice(0, 34)}...` : value;
+
+  const labels = {
+    photo: 'фото',
+    audio: 'голосовое',
+    video: 'видео',
+    file: 'файл'
+  };
+  const first = labels[media?.[0]?.kind] || 'материал';
+  return media.length > 1 ? `${first} +${media.length - 1}` : first;
+}
+
+function chunkButtons(items, size) {
+  const rows = [];
+  for (let index = 0; index < items.length; index += size) {
+    rows.push(items.slice(index, index + size));
+  }
+  return rows;
 }
