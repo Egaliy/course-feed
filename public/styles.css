@@ -255,7 +255,7 @@ textarea {
 }
 
 .subtopic-tabs a {
-  flex-basis: 148px;
+  flex-basis: 170px;
   min-height: 48px;
   grid-template-columns: auto minmax(0, 1fr) auto;
   justify-items: start;
@@ -317,7 +317,12 @@ textarea {
 
 .content-tabs span,
 .subtopic-tabs span {
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
   line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .content-tabs a[aria-current="page"] b,
@@ -1922,7 +1927,7 @@ textarea {
   }
 
   .subtopic-tabs a {
-    flex-basis: 138px;
+    flex-basis: 158px;
     min-height: 46px;
   }
 

@@ -1,9 +1,11 @@
 import crypto from 'node:crypto';
 import path from 'node:path';
-import { get, put } from '@vercel/blob';
+import { del, get, list, put } from '@vercel/blob';
 import { getTopicById, normalizeTopicId, normalizeTopics, slugifyTopic } from './topics.js';
 
 const dbPathname = 'data/db.json';
+const statePrefix = 'data/state/';
+const pendingPrefix = 'pending-publications';
 const telegramFileBase = 'https://api.telegram.org/file/bot';
 
 export const defaultState = {
@@ -25,11 +27,9 @@ export async function readBlobState() {
   if (!hasBlobStorage()) return structuredClone(defaultState);
 
   try {
-    const result = await get(dbPathname, withBlobToken({ access: 'public' }));
-    if (!result?.stream) return structuredClone(defaultState);
-
-    const raw = await streamToString(result.stream);
-    return normalizeState(JSON.parse(raw));
+    const latestPathname = await getLatestStatePathname();
+    const state = latestPathname ? await readBlobJson(latestPathname) : await readBlobJson(dbPathname);
+    return normalizeState(state);
   } catch (error) {
     if (isMissingBlobError(error)) return structuredClone(defaultState);
     throw error;
@@ -41,12 +41,19 @@ export async function writeBlobState(state) {
     throw new Error('BLOB_READ_WRITE_TOKEN is missing');
   }
 
-  await put(dbPathname, JSON.stringify(normalizeState(state), null, 2), withBlobToken({
+  const body = JSON.stringify(normalizeState(state), null, 2);
+  const versionedPathname = `${statePrefix}${Date.now()}-${crypto.randomBytes(4).toString('hex')}.json`;
+  const options = withBlobToken({
     access: 'public',
     allowOverwrite: true,
     contentType: 'application/json',
     cacheControlMaxAge: 60
-  }));
+  });
+
+  await Promise.all([
+    put(versionedPathname, body, options),
+    put(dbPathname, body, options)
+  ]);
 }
 
 export async function addBlobPost(input) {
@@ -84,7 +91,6 @@ export async function addBlobTopic(label) {
 }
 
 export async function addPendingPublication(input) {
-  const state = await readBlobState();
   const pending = {
     id: crypto.randomBytes(8).toString('base64url'),
     createdAt: new Date().toISOString(),
@@ -95,21 +101,31 @@ export async function addPendingPublication(input) {
     ...input
   };
 
-  state.pendingPublications = [...(state.pendingPublications || []), pending].slice(-50);
-  await writeBlobState(state);
+  await put(getPendingPath(pending.id), JSON.stringify(pending), withBlobToken({
+    access: 'public',
+    allowOverwrite: true,
+    contentType: 'application/json',
+    cacheControlMaxAge: 60
+  }));
   return pending;
 }
 
 export async function getPendingPublication(id) {
-  const state = await readBlobState();
-  return (state.pendingPublications || []).find((item) => item.id === String(id || '')) || null;
+  const pendingId = String(id || '').trim();
+  if (!pendingId) return null;
+
+  try {
+    return await readBlobJson(getPendingPath(pendingId));
+  } catch (error) {
+    if (isMissingBlobError(error)) return null;
+    throw error;
+  }
 }
 
 export async function deletePendingPublication(id) {
-  const state = await readBlobState();
   const pendingId = String(id || '');
-  state.pendingPublications = (state.pendingPublications || []).filter((item) => item.id !== pendingId);
-  await writeBlobState(state);
+  if (!pendingId) return;
+  await del(getPendingPath(pendingId), withBlobToken()).catch(() => {});
 }
 
 export async function setAdminTopicSelection(adminId, topicId) {
@@ -235,6 +251,30 @@ function uniqueTopicId(topics, baseId) {
   }
 
   return id;
+}
+
+function getPendingPath(id) {
+  return `${pendingPrefix}/${encodeURIComponent(id)}.json`;
+}
+
+async function getLatestStatePathname() {
+  const result = await list(withBlobToken({
+    prefix: statePrefix,
+    limit: 1000
+  }));
+  const latest = [...(result.blobs || [])]
+    .filter((blob) => blob.pathname.endsWith('.json'))
+    .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt))[0];
+
+  return latest?.pathname || '';
+}
+
+async function readBlobJson(pathname) {
+  const result = await get(pathname, withBlobToken({ access: 'public' }));
+  if (!result?.stream) return null;
+
+  const raw = await streamToString(result.stream);
+  return JSON.parse(raw);
 }
 
 function withBlobToken(options = {}) {

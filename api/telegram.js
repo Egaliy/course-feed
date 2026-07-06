@@ -154,9 +154,9 @@ async function askPublicationTopic({ message, botToken, chatId, userId }) {
     chatId,
     text: `Куда опубликовать: ${describeDraft({ text, media })}?`,
     replyMarkup: {
-      inline_keyboard: chunkButtons(topics.map((topic, index) => ({
+      inline_keyboard: chunkButtons(topics.map((topic) => ({
         text: topic.parentId ? `↳ ${topic.label}` : topic.label,
-        callback_data: `pub:${pending.id}:${index}`
+        callback_data: `pub:${pending.id}:${topic.id}`
       })), 1)
     }
   });
@@ -173,7 +173,7 @@ async function handleCallback({ callback, botToken }) {
     return;
   }
 
-  const publishMatch = payload.match(/^pub:([A-Za-z0-9_-]+):(\d+)$/);
+  const publishMatch = payload.match(/^pub:([A-Za-z0-9_-]+):([A-Za-z0-9_-]+)$/);
   if (publishMatch) {
     await publishPendingMessage({
       botToken,
@@ -182,7 +182,7 @@ async function handleCallback({ callback, botToken }) {
       callbackId: callback.id,
       messageId: callback.message.message_id,
       pendingId: publishMatch[1],
-      topicIndex: Number(publishMatch[2])
+      topicId: publishMatch[2]
     });
     return;
   }
@@ -284,7 +284,7 @@ async function createTopicFromCommand({ botToken, chatId, userId, label }) {
   });
 }
 
-async function publishPendingMessage({ botToken, chatId, userId, callbackId, messageId, pendingId, topicIndex }) {
+async function publishPendingMessage({ botToken, chatId, userId, callbackId, messageId, pendingId, topicId }) {
   const [pending, topics] = await Promise.all([
     getPendingPublication(pendingId),
     getBlobTopics()
@@ -301,7 +301,7 @@ async function publishPendingMessage({ botToken, chatId, userId, callbackId, mes
     return;
   }
 
-  const topic = topics[topicIndex];
+  const topic = topics.find((item) => item.id === topicId);
   if (!topic) {
     await answerCallback({ botToken, callbackId, text: 'Раздел не найден.' });
     return;
