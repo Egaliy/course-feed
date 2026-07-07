@@ -262,8 +262,9 @@ textarea {
 .subtopic-tabs a {
   flex-basis: 170px;
   min-height: 52px;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: 18px minmax(0, 1fr) 18px;
   align-content: center;
+  align-items: center;
   justify-items: start;
   gap: 7px;
   padding: 8px 10px;
@@ -314,6 +315,11 @@ textarea {
   color: var(--muted);
   font-size: 12px;
   font-weight: 850;
+}
+
+.subtopic-tabs b {
+  justify-self: end;
+  padding: 0;
 }
 
 .content-tabs b.has-unread,
@@ -498,11 +504,15 @@ textarea {
 }
 
 .new-badge {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 3;
   display: inline-flex;
   align-items: center;
   width: fit-content;
   min-height: 24px;
-  margin: 0 0 10px;
+  margin: 0;
   padding: 0 9px;
   border: 1px solid rgba(255, 255, 255, 0.78);
   border-radius: 999px;
@@ -844,6 +854,10 @@ textarea {
   padding: 18px;
   border-radius: 16px;
   overflow: visible;
+}
+
+.post-body:has(.new-badge:not([hidden])) {
+  padding-top: 46px;
 }
 
 .post-text {

@@ -76,14 +76,22 @@ export async function getBlobTopics() {
   return normalizeTopics(state.topics);
 }
 
-export async function addBlobTopic(label) {
+export async function addBlobTopic(label, options = {}) {
   const state = await readBlobState();
   const topicLabel = String(label || '').trim();
   if (!topicLabel) throw new Error('Topic label is empty');
 
   const topics = normalizeTopics(state.topics);
+  const parentId = normalizeTopicId(options.parentId);
+  const parent = parentId ? topics.find((topic) => topic.id === parentId) : null;
+  if (parentId && !parent) throw new Error('Parent topic is missing');
+
   const id = uniqueTopicId(topics, slugifyTopic(topicLabel));
-  const topic = { id, label: topicLabel };
+  const topic = {
+    id,
+    label: topicLabel,
+    ...(parent ? { parentId: parent.id } : {})
+  };
 
   state.topics = [...(state.topics || []), topic];
   await writeBlobState(state);

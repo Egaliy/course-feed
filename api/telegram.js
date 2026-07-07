@@ -120,6 +120,13 @@ async function handleUpdate({ update, botToken }) {
     return;
   }
 
+  if (text.startsWith('/subtopic_add')) {
+    await deleteMessage({ botToken, chatId, messageId: message.message_id });
+    const input = text.replace('/subtopic_add', '').trim();
+    await createSubtopicFromCommand({ botToken, chatId, input });
+    return;
+  }
+
   if (text.startsWith('/')) return;
 
   await askPublicationTopic({ message, botToken, chatId, userId });
@@ -233,6 +240,7 @@ async function sendHelpMessage({ botToken, chatId }) {
       '/link - создать ссылку доступа на 1, 3, 6 или 9 месяцев',
       '/manage - открыть управление материалами на сайте',
       '/topic_add Название - добавить новый раздел',
+      '/subtopic_add Раздел | Подраздел - добавить подраздел',
       '/help - показать эту подсказку',
       '',
       'Чтобы опубликовать материал, отправьте текст, фото, видео, голосовое или файл. Бот спросит, в какой раздел его добавить.'
@@ -283,6 +291,34 @@ async function createTopicFromCommand({ botToken, chatId, label }) {
   });
 }
 
+async function createSubtopicFromCommand({ botToken, chatId, input }) {
+  const [parentText, labelText] = String(input || '').split('|').map((part) => part.trim());
+
+  if (!parentText || !labelText) {
+    await sendMessage({ botToken, chatId, text: 'Напишите так: /subtopic_add Раздел | Название подраздела' });
+    return;
+  }
+
+  if (!hasBlobStorage()) {
+    await sendMessage({ botToken, chatId, text: 'Хранилище Vercel Blob еще не подключено.' });
+    return;
+  }
+
+  const topics = await getBlobTopics();
+  const parent = findTopicByText(topics, parentText);
+  if (!parent) {
+    await sendMessage({ botToken, chatId, text: `Раздел не найден: ${parentText}` });
+    return;
+  }
+
+  const topic = await addBlobTopic(labelText, { parentId: parent.id });
+  await sendMessage({
+    botToken,
+    chatId,
+    text: `Подраздел добавлен: ${parent.label} → ${topic.label}`
+  });
+}
+
 async function publishPendingMessage({ botToken, chatId, userId, callbackId, messageId, pendingId, topicId }) {
   const [pending, topics] = await Promise.all([
     getPendingPublication(pendingId),
@@ -329,6 +365,19 @@ async function publishPendingMessage({ botToken, chatId, userId, callbackId, mes
     chatId,
     text: `Опубликовано.\nРаздел: ${topic.label}\nМатериал: ${describePost(post)}`
   });
+}
+
+function findTopicByText(topics, value) {
+  const needle = normalizeText(value);
+  return topics.find((topic) => (
+    normalizeText(topic.id) === needle
+      || normalizeText(topic.label) === needle
+      || normalizeText(topic.shortLabel) === needle
+  ));
+}
+
+function normalizeText(value) {
+  return String(value || '').trim().toLowerCase();
 }
 
 async function sendMessage({ botToken, chatId, text, replyMarkup }) {
