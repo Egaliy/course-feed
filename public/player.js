@@ -185,6 +185,10 @@ function setupScrollableTabs() {
     let isDragging = false;
     let didDrag = false;
 
+    tabs.querySelectorAll('a').forEach((link) => {
+      link.draggable = false;
+    });
+
     tabs.addEventListener('pointerdown', (event) => {
       if (event.button !== 0 && event.pointerType === 'mouse') return;
 

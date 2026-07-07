@@ -214,17 +214,16 @@ textarea {
   padding-bottom: 2px;
   scrollbar-width: thin;
   scrollbar-color: rgba(79, 127, 186, 0.42) transparent;
-  scroll-snap-type: x proximity;
   cursor: grab;
   user-select: none;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
+  touch-action: pan-y;
 }
 
 .content-tabs.is-dragging,
 .subtopic-tabs.is-dragging {
   cursor: grabbing;
-  scroll-snap-type: none;
 }
 
 .content-tabs::-webkit-scrollbar,
@@ -252,8 +251,8 @@ textarea {
   font-size: 13px;
   font-weight: 850;
   text-align: center;
-  scroll-snap-align: start;
-  touch-action: pan-x;
+  -webkit-user-drag: none;
+  touch-action: pan-y;
 }
 
 .subtopic-tabs {
