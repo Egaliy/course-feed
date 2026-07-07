@@ -56,6 +56,13 @@ export function renderManagePage({ title, posts, adminKey, notice = '', topics =
       </header>
       ${notice ? `<div class="manage-notice">${escapeHtml(notice)}</div>` : ''}
       ${nav}
+      ${activeView !== 'all' ? `
+        <form class="manage-topic-form" method="post" action="/?manage=${encodeURIComponent(adminKey)}" onsubmit="return confirm('Точно удалить этот раздел и все его подразделы? Материалы при этом не удалятся, а перейдут в общую ленту.');" style="margin-top: 16px; margin-bottom: 24px;">
+          <input type="hidden" name="action" value="delete-topic">
+          <input type="hidden" name="topicId" value="${escapeHtml(activeView)}">
+          <button class="danger-button" type="submit">Удалить этот раздел</button>
+        </form>
+      ` : ''}
       ${sortedPosts.length ? `
         <form class="manage-form" method="post" action="/?manage=${encodeURIComponent(adminKey)}">
           <input type="hidden" name="action" value="delete-posts">

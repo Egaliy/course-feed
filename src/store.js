@@ -117,6 +117,26 @@ export class Store {
     return topic;
   }
 
+  async deleteTopic(topicId) {
+    if (!this.state.topics) return false;
+    const before = this.state.topics.length;
+    
+    const idsToDelete = new Set([topicId]);
+    for (const topic of this.state.topics) {
+      if (topic.parentId === topicId) {
+        idsToDelete.add(topic.id);
+      }
+    }
+
+    this.state.topics = this.state.topics.filter((topic) => !idsToDelete.has(topic.id));
+    
+    if (this.state.topics.length !== before) {
+      await this.save();
+      return true;
+    }
+    return false;
+  }
+
   getAdminTopicSelection(adminId) {
     return (this.state.adminTopicSelections || {})[String(adminId)] || 'other';
   }

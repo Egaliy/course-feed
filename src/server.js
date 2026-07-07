@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { Store } from './store.js';
 import { createBot } from './bot.js';
 import { parseAccessToken } from './access-token.js';
-import { deleteBlobPosts, deleteBlobPost, hasBlobStorage, readBlobState } from './blob-storage.js';
+import { deleteBlobPosts, deleteBlobPost, deleteBlobTopic, hasBlobStorage, readBlobState } from './blob-storage.js';
 import {
   renderFeedPage,
   renderManagePage,
@@ -74,6 +74,19 @@ app.post('/', async (req, res) => {
   console.log('POST /', req.query, 'manageKey:', getSiteAdminKey());
   if (!isManageRequest(req)) {
     res.status(404).send(renderRegistrationPage({ title }));
+    return;
+  }
+
+  if (req.body.action === 'delete-topic') {
+    const topicId = String(req.body.topicId || '').trim();
+    if (topicId) {
+      if (useBlobStorage) {
+        await deleteBlobTopic(topicId);
+      } else {
+        await store.deleteTopic(topicId);
+      }
+    }
+    res.redirect(303, `/?manage=${encodeURIComponent(getSiteAdminKey())}`);
     return;
   }
 

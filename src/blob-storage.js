@@ -330,3 +330,24 @@ function isMissingBlobError(error) {
   const message = String(error?.message || '');
   return message.includes('404') || message.includes('not found') || message.includes('NoSuchKey');
 }
+
+export async function deleteBlobTopic(topicId) {
+  const state = await readBlobState();
+  const before = state.topics.length;
+  
+  const idsToDelete = new Set([topicId]);
+  for (const topic of state.topics) {
+    if (topic.parentId === topicId) {
+      idsToDelete.add(topic.id);
+    }
+  }
+
+  state.topics = state.topics.filter((topic) => !idsToDelete.has(topic.id));
+  
+  if (state.topics.length === before) {
+    return false;
+  }
+
+  await writeBlobState(state);
+  return true;
+}
