@@ -20,6 +20,8 @@ const durations = [
   { label: '9 месяцев', months: 9 }
 ];
 
+let botMenuCommandsConfigured = false;
+
 export default async function handler(req, res) {
   if (req.method === 'GET') {
     res.status(200).send('Telegram webhook is ready.');
@@ -43,6 +45,7 @@ export default async function handler(req, res) {
   }
 
   try {
+    await ensureBotMenuCommands(botToken);
     const update = parseUpdate(req.body);
     await handleUpdate({ update, botToken });
     res.status(200).json({ ok: true });
@@ -246,6 +249,30 @@ async function sendHelpMessage({ botToken, chatId }) {
       'Чтобы опубликовать материал, отправьте текст, фото, видео, голосовое или файл. Бот спросит, в какой раздел его добавить.'
     ].join('\n')
   });
+}
+
+async function ensureBotMenuCommands(botToken) {
+  if (botMenuCommandsConfigured) return;
+
+  try {
+    await telegramRequest({
+      botToken,
+      method: 'setMyCommands',
+      body: {
+        commands: [
+          { command: 'start', description: 'показать меню' },
+          { command: 'link', description: 'создать ссылку доступа' },
+          { command: 'manage', description: 'управление материалами' },
+          { command: 'topic_add', description: 'добавить раздел' },
+          { command: 'subtopic_add', description: 'добавить подраздел' },
+          { command: 'help', description: 'подсказка по командам' }
+        ]
+      }
+    });
+    botMenuCommandsConfigured = true;
+  } catch (error) {
+    console.error('Telegram command menu failed:', error);
+  }
 }
 
 async function sendTopicPicker({ botToken, chatId, userId }) {
