@@ -55,17 +55,21 @@ export class Store {
     return [...this.state.posts].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   }
 
-  async deletePost(id) {
+  async deletePosts(ids) {
     const before = this.state.posts.length;
-    const postToDelete = this.state.posts.find((p) => p.id === id);
-    this.state.posts = this.state.posts.filter((post) => post.id !== id);
+    const idSet = new Set(ids.map((id) => String(id || '')));
+    
+    const postsToDelete = this.state.posts.filter((p) => idSet.has(p.id));
+    this.state.posts = this.state.posts.filter((post) => !idSet.has(post.id));
     
     if (this.state.posts.length !== before) {
-      if (postToDelete && postToDelete.media) {
-        for (const item of postToDelete.media) {
-          if (item.url && item.url.startsWith('/uploads/')) {
-            const filePath = join(process.cwd(), 'public', item.url);
-            await unlink(filePath).catch((e) => console.error('Local delete error:', e));
+      for (const p of postsToDelete) {
+        if (p.media) {
+          for (const item of p.media) {
+            if (item.url && item.url.startsWith('/uploads/')) {
+              const filePath = join(process.cwd(), 'public', item.url);
+              await unlink(filePath).catch((e) => console.error('Local delete error:', e));
+            }
           }
         }
       }
@@ -73,6 +77,10 @@ export class Store {
       return true;
     }
     return false;
+  }
+
+  async deletePost(id) {
+    return this.deletePosts([id]);
   }
 
   getTopics() {

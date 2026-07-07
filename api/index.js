@@ -2,7 +2,7 @@ import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { parseAccessToken } from '../src/access-token.js';
-import { deleteBlobPost, hasBlobStorage, readBlobState } from '../src/blob-storage.js';
+import { deleteBlobPosts, deleteBlobPost, hasBlobStorage, readBlobState } from '../src/blob-storage.js';
 import { renderFeedPage, renderManagePage, renderRegistrationPage } from '../src/render.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -17,7 +17,7 @@ export default async function handler(req, res) {
   if (isManageRequest(req)) {
     if (req.method === 'POST') {
       const ids = getPostIdsFromBody(req.body);
-      await Promise.all(ids.map((id) => deleteBlobPost(id)));
+      await deleteBlobPosts(ids);
       redirect(res, `/?manage=${encodeURIComponent(getSiteAdminKey())}&notice=${encodeURIComponent(`Удалено: ${ids.length}`)}`);
       return;
     }

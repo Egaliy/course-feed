@@ -155,27 +155,33 @@ export async function getAdminTopicSelection(adminId) {
   return getTopicById(state.topics, topicId);
 }
 
-export async function deleteBlobPost(id) {
+export async function deleteBlobPosts(ids) {
   const state = await readBlobState();
-  const postId = String(id || '');
+  const idSet = new Set(ids.map((id) => String(id || '')));
   const before = state.posts.length;
-  const postToDelete = state.posts.find((p) => p.id === postId);
-  state.posts = state.posts.filter((post) => post.id !== postId);
+  
+  const postsToDelete = state.posts.filter((p) => idSet.has(p.id));
+  state.posts = state.posts.filter((post) => !idSet.has(post.id));
 
   if (state.posts.length === before) {
     return false;
   }
 
-  if (postToDelete && postToDelete.media) {
-    for (const item of postToDelete.media) {
-      if (item.url) {
-        await del(item.url, withBlobToken()).catch((e) => console.error('Blob delete error:', e));
-      }
-    }
+  const urlsToDelete = postsToDelete
+    .flatMap((p) => p.media || [])
+    .map((m) => m.url)
+    .filter(Boolean);
+
+  if (urlsToDelete.length > 0) {
+    await del(urlsToDelete, withBlobToken()).catch((e) => console.error('Blob delete error:', e));
   }
 
   await writeBlobState(state);
   return true;
+}
+
+export async function deleteBlobPost(id) {
+  return deleteBlobPosts([id]);
 }
 
 export async function getRecentBlobPosts(limit = 10) {

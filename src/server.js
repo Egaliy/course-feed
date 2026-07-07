@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { Store } from './store.js';
 import { createBot } from './bot.js';
 import { parseAccessToken } from './access-token.js';
-import { deleteBlobPost, hasBlobStorage, readBlobState } from './blob-storage.js';
+import { deleteBlobPosts, deleteBlobPost, hasBlobStorage, readBlobState } from './blob-storage.js';
 import {
   renderFeedPage,
   renderManagePage,
@@ -79,11 +79,9 @@ app.post('/', async (req, res) => {
 
   const ids = getPostIdsFromBody(req.body);
   if (useBlobStorage) {
-    await Promise.all(ids.map((id) => deleteBlobPost(id)));
+    await deleteBlobPosts(ids);
   } else {
-    for (const id of ids) {
-      await store.deletePost(id);
-    }
+    await store.deletePosts(ids);
   }
   res.redirect(303, `/?manage=${encodeURIComponent(getSiteAdminKey())}&notice=${encodeURIComponent(`Удалено: ${ids.length}`)}`);
 });
