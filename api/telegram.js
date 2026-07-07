@@ -206,6 +206,19 @@ async function handleCallback({ callback, botToken }) {
     return;
   }
 
+  const delMatch = payload.match(/^del:([A-Za-z0-9_-]+)$/);
+  if (delMatch) {
+    const deleted = await deleteBlobPost(delMatch[1]);
+    if (deleted) {
+      await answerCallback({ botToken, callbackId: callback.id, text: 'Удалено' });
+      await sendMessage({ botToken, chatId, text: 'Материал удален.' });
+      await deleteMessage({ botToken, chatId, messageId: callback.message.message_id });
+    } else {
+      await answerCallback({ botToken, callbackId: callback.id, text: 'Не найдено или уже удалено' });
+    }
+    return;
+  }
+
   const match = payload.match(/^link:(\d+)$/);
   if (!match) return;
 
@@ -390,7 +403,10 @@ async function publishPendingMessage({ botToken, chatId, userId, callbackId, mes
   await sendMessage({
     botToken,
     chatId,
-    text: `Опубликовано.\nРаздел: ${topic.label}\nМатериал: ${describePost(post)}`
+    text: `Опубликовано.\nРаздел: ${topic.label}\nМатериал: ${describePost(post)}`,
+    replyMarkup: {
+      inline_keyboard: [[{ text: 'Удалить', callback_data: `del:${post.id}` }]]
+    }
   });
 }
 

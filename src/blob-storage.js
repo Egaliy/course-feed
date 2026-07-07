@@ -159,10 +159,19 @@ export async function deleteBlobPost(id) {
   const state = await readBlobState();
   const postId = String(id || '');
   const before = state.posts.length;
+  const postToDelete = state.posts.find((p) => p.id === postId);
   state.posts = state.posts.filter((post) => post.id !== postId);
 
   if (state.posts.length === before) {
     return false;
+  }
+
+  if (postToDelete && postToDelete.media) {
+    for (const item of postToDelete.media) {
+      if (item.url) {
+        await del(item.url, withBlobToken()).catch((e) => console.error('Blob delete error:', e));
+      }
+    }
   }
 
   await writeBlobState(state);

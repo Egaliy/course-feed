@@ -30,7 +30,8 @@ export default async function handler(req, res) {
       posts: getPosts(state),
       adminKey: getSiteAdminKey(),
       topics: state.topics,
-      notice
+      notice,
+      view: String(req.query.view || 'all')
     }));
     return;
   }

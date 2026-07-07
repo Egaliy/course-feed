@@ -1,11 +1,14 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname } from 'node:path';
+import { mkdir, readFile, writeFile, unlink } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import crypto from 'node:crypto';
+import { normalizeTopicId, normalizeTopics, slugifyTopic } from './topics.js';
 
 const defaultState = {
   posts: [],
   accessLinks: [],
-  registrations: []
+  registrations: [],
+  topics: [],
+  adminTopicSelections: {}
 };
 
 export class Store {
@@ -50,6 +53,70 @@ export class Store {
 
   getPosts() {
     return [...this.state.posts].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  }
+
+  async deletePost(id) {
+    const before = this.state.posts.length;
+    const postToDelete = this.state.posts.find((p) => p.id === id);
+    this.state.posts = this.state.posts.filter((post) => post.id !== id);
+    
+    if (this.state.posts.length !== before) {
+      if (postToDelete && postToDelete.media) {
+        for (const item of postToDelete.media) {
+          if (item.url && item.url.startsWith('/uploads/')) {
+            const filePath = join(process.cwd(), 'public', item.url);
+            await unlink(filePath).catch((e) => console.error('Local delete error:', e));
+          }
+        }
+      }
+      await this.save();
+      return true;
+    }
+    return false;
+  }
+
+  getTopics() {
+    return this.state.topics || [];
+  }
+
+  async addTopic(label, options = {}) {
+    if (!this.state.topics) this.state.topics = [];
+    const topicLabel = String(label || '').trim();
+    if (!topicLabel) throw new Error('Topic label is empty');
+
+    const topics = normalizeTopics(this.state.topics);
+    const parentId = normalizeTopicId(options.parentId);
+    const parent = parentId ? topics.find((topic) => topic.id === parentId) : null;
+    if (parentId && !parent) throw new Error('Parent topic is missing');
+
+    const existingIds = new Set(topics.map((t) => t.id));
+    const baseId = normalizeTopicId(slugifyTopic(topicLabel)) || `topic-${Date.now().toString(36)}`;
+    let id = baseId;
+    let index = 2;
+    while (existingIds.has(id)) {
+      id = `${baseId}-${index}`;
+      index += 1;
+    }
+
+    const topic = {
+      id,
+      label: topicLabel,
+      ...(parent ? { parentId: parent.id } : {})
+    };
+
+    this.state.topics.push(topic);
+    await this.save();
+    return topic;
+  }
+
+  getAdminTopicSelection(adminId) {
+    return (this.state.adminTopicSelections || {})[String(adminId)] || 'other';
+  }
+
+  async setAdminTopicSelection(adminId, topicId) {
+    if (!this.state.adminTopicSelections) this.state.adminTopicSelections = {};
+    this.state.adminTopicSelections[String(adminId)] = topicId;
+    await this.save();
   }
 
   async createAccessLink(months) {

@@ -38,9 +38,12 @@ export function renderFeedPage({ title, posts, access, token = '', view = 'all',
   `);
 }
 
-export function renderManagePage({ title, posts, adminKey, notice = '', topics = [] }) {
-  const sortedPosts = [...(posts || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+export function renderManagePage({ title, posts, adminKey, notice = '', topics = [], view = 'all' }) {
   const topicItems = normalizeTopics(topics);
+  const activeView = normalizeView(view, topicItems);
+  const visiblePosts = filterPostsByView(posts, activeView, topicItems);
+  const sortedPosts = [...(visiblePosts || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  const nav = renderContentNav({ posts, activeView, topics: topicItems, manageKey: adminKey });
 
   return page(`Управление - ${title}`, `
     <main class="feed-shell manage-shell">
@@ -52,6 +55,7 @@ export function renderManagePage({ title, posts, adminKey, notice = '', topics =
         <span class="access-badge">Режим удаления</span>
       </header>
       ${notice ? `<div class="manage-notice">${escapeHtml(notice)}</div>` : ''}
+      ${nav}
       ${sortedPosts.length ? `
         <form class="manage-form" method="post" action="/?manage=${encodeURIComponent(adminKey)}">
           <input type="hidden" name="action" value="delete-posts">
@@ -285,7 +289,7 @@ function renderEmptyIcon(view) {
   `;
 }
 
-function renderContentNav({ posts, activeView, token = '', topics = [] }) {
+function renderContentNav({ posts, activeView, token = '', topics = [], manageKey = '' }) {
   const topicItems = normalizeTopics(topics);
   const counts = getViewCounts(posts, topicItems);
   const activeTopic = topicItems.find((topic) => topic.id === activeView);
@@ -312,6 +316,7 @@ function renderContentNav({ posts, activeView, token = '', topics = [] }) {
         ${items.map((item) => renderNavItem({
           item,
           token,
+          manageKey,
           current: item.view === activeView,
           parentActive: item.view === activeParentId && item.view !== activeView
         })).join('')}
@@ -327,6 +332,7 @@ function renderContentNav({ posts, activeView, token = '', topics = [] }) {
               parentId: topic.parentId
             },
             token,
+            manageKey,
             current: topic.id === activeView
           })).join('')}
         </nav>
@@ -335,9 +341,9 @@ function renderContentNav({ posts, activeView, token = '', topics = [] }) {
   `;
 }
 
-function renderNavItem({ item, token, current, parentActive = false }) {
+function renderNavItem({ item, token, manageKey, current, parentActive = false }) {
   return `
-    <a class="${[item.parentId ? 'is-subtopic' : '', parentActive ? 'is-parent-active' : ''].filter(Boolean).join(' ')}" href="${escapeHtml(buildViewHref({ view: item.view, token }))}" data-view="${escapeHtml(item.view)}" ${current ? 'aria-current="page"' : ''}>
+    <a class="${[item.parentId ? 'is-subtopic' : '', parentActive ? 'is-parent-active' : ''].filter(Boolean).join(' ')}" href="${escapeHtml(buildViewHref({ view: item.view, token, manageKey }))}" data-view="${escapeHtml(item.view)}" ${current ? 'aria-current="page"' : ''}>
       ${renderTabIcon(item.view)}
       <span title="${escapeHtml(item.label)}">${escapeHtml(item.shortLabel || item.label)}</span>
       <b>${item.count}</b>
@@ -448,9 +454,15 @@ function getView(id, topics = []) {
   };
 }
 
-function buildViewHref({ view, token }) {
+function buildViewHref({ view, token, manageKey }) {
   const params = new URLSearchParams();
   if (view !== 'all') params.set('view', view);
+  
+  if (manageKey) {
+    params.set('manage', manageKey);
+    return `/?${params.toString()}`;
+  }
+  
   const query = params.toString();
 
   if (token && isShortAccessToken(token)) {

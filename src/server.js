@@ -44,7 +44,8 @@ app.get('/', async (req, res) => {
       posts: getPosts(state),
       adminKey: getSiteAdminKey(),
       topics: state.topics,
-      notice: String(req.query.notice || '')
+      notice: String(req.query.notice || ''),
+      view: String(req.query.view || 'all')
     }));
     return;
   }
@@ -70,13 +71,20 @@ app.get('/', async (req, res) => {
 });
 
 app.post('/', async (req, res) => {
+  console.log('POST /', req.query, 'manageKey:', getSiteAdminKey());
   if (!isManageRequest(req)) {
     res.status(404).send(renderRegistrationPage({ title }));
     return;
   }
 
   const ids = getPostIdsFromBody(req.body);
-  await Promise.all(ids.map((id) => deleteBlobPost(id)));
+  if (useBlobStorage) {
+    await Promise.all(ids.map((id) => deleteBlobPost(id)));
+  } else {
+    for (const id of ids) {
+      await store.deletePost(id);
+    }
+  }
   res.redirect(303, `/?manage=${encodeURIComponent(getSiteAdminKey())}&notice=${encodeURIComponent(`Удалено: ${ids.length}`)}`);
 });
 
@@ -240,7 +248,8 @@ async function getState() {
 
   return {
     posts: store.getPosts(),
-    accessLinks: store.state.accessLinks || []
+    accessLinks: store.state.accessLinks || [],
+    topics: store.getTopics()
   };
 }
 
