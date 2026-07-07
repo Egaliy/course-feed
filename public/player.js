@@ -182,9 +182,9 @@ function setupScrollableTabs() {
   document.querySelectorAll('.content-tabs, .subtopic-tabs').forEach((tabs) => {
     let startX = 0;
     let startScroll = 0;
+    let isPointerDown = false;
     let isDragging = false;
     let suppressClick = false;
-    let clearSuppressTimer = null;
 
     tabs.querySelectorAll('a').forEach((link) => {
       link.draggable = false;
@@ -193,43 +193,42 @@ function setupScrollableTabs() {
     tabs.addEventListener('pointerdown', (event) => {
       if (event.button !== 0 && event.pointerType === 'mouse') return;
 
-      isDragging = true;
+      isPointerDown = true;
+      isDragging = false;
       suppressClick = false;
-      clearTimeout(clearSuppressTimer);
       startX = event.clientX;
       startScroll = tabs.scrollLeft;
-      tabs.classList.add('is-dragging');
-      tabs.setPointerCapture?.(event.pointerId);
     });
 
     tabs.addEventListener('pointermove', (event) => {
-      if (!isDragging) return;
+      if (!isPointerDown) return;
 
       const delta = event.clientX - startX;
-      if (Math.abs(delta) > 12) {
-        suppressClick = true;
+      if (Math.abs(delta) < 10 && !isDragging) {
+        return;
       }
 
+      isDragging = true;
+      suppressClick = true;
+      tabs.classList.add('is-dragging');
       tabs.scrollLeft = startScroll - delta;
+      event.preventDefault();
     });
 
-    const stopDrag = (event) => {
-      if (!isDragging) return;
+    const stopDrag = () => {
+      if (!isPointerDown && !isDragging) return;
 
+      isPointerDown = false;
       isDragging = false;
       tabs.classList.remove('is-dragging');
-      tabs.releasePointerCapture?.(event.pointerId);
-      clearSuppressTimer = setTimeout(() => {
+      setTimeout(() => {
         suppressClick = false;
-      }, 180);
+      }, 0);
     };
 
     tabs.addEventListener('pointerup', stopDrag);
+    tabs.addEventListener('pointerleave', stopDrag);
     tabs.addEventListener('pointercancel', stopDrag);
-    tabs.addEventListener('lostpointercapture', () => {
-      isDragging = false;
-      tabs.classList.remove('is-dragging');
-    });
 
     tabs.addEventListener('click', (event) => {
       if (!suppressClick) return;
