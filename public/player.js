@@ -183,7 +183,8 @@ function setupScrollableTabs() {
     let startX = 0;
     let startScroll = 0;
     let isDragging = false;
-    let didDrag = false;
+    let suppressClick = false;
+    let clearSuppressTimer = null;
 
     tabs.querySelectorAll('a').forEach((link) => {
       link.draggable = false;
@@ -193,7 +194,8 @@ function setupScrollableTabs() {
       if (event.button !== 0 && event.pointerType === 'mouse') return;
 
       isDragging = true;
-      didDrag = false;
+      suppressClick = false;
+      clearTimeout(clearSuppressTimer);
       startX = event.clientX;
       startScroll = tabs.scrollLeft;
       tabs.classList.add('is-dragging');
@@ -204,8 +206,8 @@ function setupScrollableTabs() {
       if (!isDragging) return;
 
       const delta = event.clientX - startX;
-      if (Math.abs(delta) > 4) {
-        didDrag = true;
+      if (Math.abs(delta) > 12) {
+        suppressClick = true;
       }
 
       tabs.scrollLeft = startScroll - delta;
@@ -217,6 +219,9 @@ function setupScrollableTabs() {
       isDragging = false;
       tabs.classList.remove('is-dragging');
       tabs.releasePointerCapture?.(event.pointerId);
+      clearSuppressTimer = setTimeout(() => {
+        suppressClick = false;
+      }, 180);
     };
 
     tabs.addEventListener('pointerup', stopDrag);
@@ -227,11 +232,11 @@ function setupScrollableTabs() {
     });
 
     tabs.addEventListener('click', (event) => {
-      if (!didDrag) return;
+      if (!suppressClick) return;
 
       event.preventDefault();
       event.stopPropagation();
-      didDrag = false;
+      suppressClick = false;
     }, true);
   });
 }
