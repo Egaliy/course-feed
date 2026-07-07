@@ -308,15 +308,14 @@ async function publishPendingMessage({ botToken, chatId, userId, callbackId, mes
 
   await answerCallback({ botToken, callbackId, text: 'Публикую...' });
 
-  const media = [];
-  for (const item of pending.media || []) {
+  const media = await Promise.all((pending.media || []).map(async (item) => {
     const file = await uploadTelegramFileToBlob({
       botToken,
       fileId: item.fileId,
       name: item.name
     });
-    media.push({ ...item, ...file });
-  }
+    return { ...item, ...file };
+  }));
 
   const post = await addBlobPost({
     text: pending.text || '',

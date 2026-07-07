@@ -19,8 +19,7 @@ export function renderFeedPage({ title, posts, access, token = '', view = 'all',
           <h1>${escapeHtml(title)}</h1>
         </div>
         <div class="access-stack">
-          <span class="access-badge">Доступ открыт</span>
-          ${renderAccessUntil(access)}
+          ${renderAccessBadge(access)}
         </div>
       </header>
       ${renderAuthorCard()}
@@ -243,10 +242,12 @@ function renderCourseStats(posts) {
   `;
 }
 
-function renderAccessUntil(access) {
-  if (!access?.expiresAt) return '';
+function renderAccessBadge(access) {
+  const label = access?.expiresAt
+    ? `Доступ до ${formatFullDate(access.expiresAt)}`
+    : 'Доступ открыт';
 
-  return `<span class="access-until">до ${escapeHtml(formatFullDate(access.expiresAt))}</span>`;
+  return `<span class="access-badge">${escapeHtml(label)}</span>`;
 }
 
 function getLatestPostDate(posts) {

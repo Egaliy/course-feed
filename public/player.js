@@ -108,6 +108,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setupSeekBars();
   setupFileCards();
   setupManageSelection();
+  setupScrollableTabs();
   updateUnreadTabs();
   updateNewBadges();
   document.querySelectorAll('.content-tabs a').forEach((link) => {
@@ -174,6 +175,60 @@ function setupManageSelection() {
     document.querySelectorAll('.manage-post input[name="postId"]').forEach((item) => {
       item.checked = selectAll.checked;
     });
+  });
+}
+
+function setupScrollableTabs() {
+  document.querySelectorAll('.content-tabs, .subtopic-tabs').forEach((tabs) => {
+    let startX = 0;
+    let startScroll = 0;
+    let isDragging = false;
+    let didDrag = false;
+
+    tabs.addEventListener('pointerdown', (event) => {
+      if (event.button !== 0 && event.pointerType === 'mouse') return;
+
+      isDragging = true;
+      didDrag = false;
+      startX = event.clientX;
+      startScroll = tabs.scrollLeft;
+      tabs.classList.add('is-dragging');
+      tabs.setPointerCapture?.(event.pointerId);
+    });
+
+    tabs.addEventListener('pointermove', (event) => {
+      if (!isDragging) return;
+
+      const delta = event.clientX - startX;
+      if (Math.abs(delta) > 4) {
+        didDrag = true;
+      }
+
+      tabs.scrollLeft = startScroll - delta;
+    });
+
+    const stopDrag = (event) => {
+      if (!isDragging) return;
+
+      isDragging = false;
+      tabs.classList.remove('is-dragging');
+      tabs.releasePointerCapture?.(event.pointerId);
+    };
+
+    tabs.addEventListener('pointerup', stopDrag);
+    tabs.addEventListener('pointercancel', stopDrag);
+    tabs.addEventListener('lostpointercapture', () => {
+      isDragging = false;
+      tabs.classList.remove('is-dragging');
+    });
+
+    tabs.addEventListener('click', (event) => {
+      if (!didDrag) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      didDrag = false;
+    }, true);
   });
 }
 

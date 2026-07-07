@@ -96,28 +96,22 @@ textarea {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
-  min-height: 34px;
-  padding: 0 13px;
-  border: 1px solid rgba(16, 124, 65, 0.16);
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid rgba(71, 117, 98, 0.18);
   border-radius: 999px;
-  background: rgba(16, 124, 65, 0.08);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(223, 238, 230, 0.62));
   color: var(--green);
   font-size: 13px;
   font-weight: 800;
   white-space: nowrap;
+  box-shadow: 0 10px 24px rgba(31, 47, 42, 0.07);
 }
 
 .access-stack {
   display: grid;
   justify-items: end;
-  gap: 6px;
-}
-
-.access-until {
-  color: var(--secondary);
-  font-size: 12px;
-  font-weight: 800;
-  white-space: nowrap;
 }
 
 .author-card {
@@ -221,6 +215,16 @@ textarea {
   scrollbar-width: thin;
   scrollbar-color: rgba(79, 127, 186, 0.42) transparent;
   scroll-snap-type: x proximity;
+  cursor: grab;
+  user-select: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.content-tabs.is-dragging,
+.subtopic-tabs.is-dragging {
+  cursor: grabbing;
+  scroll-snap-type: none;
 }
 
 .content-tabs::-webkit-scrollbar,
@@ -237,17 +241,19 @@ textarea {
 .content-tabs a,
 .subtopic-tabs a {
   display: grid;
-  place-items: center;
-  gap: 2px;
-  flex: 0 0 124px;
-  min-height: 62px;
-  padding: 8px 6px;
+  align-content: center;
+  justify-items: center;
+  gap: 3px;
+  flex: 0 0 118px;
+  min-height: 72px;
+  padding: 9px 8px;
   border-radius: 12px;
   color: var(--secondary);
   font-size: 13px;
   font-weight: 850;
   text-align: center;
   scroll-snap-align: start;
+  touch-action: pan-x;
 }
 
 .subtopic-tabs {
@@ -256,8 +262,9 @@ textarea {
 
 .subtopic-tabs a {
   flex-basis: 170px;
-  min-height: 48px;
+  min-height: 52px;
   grid-template-columns: auto minmax(0, 1fr) auto;
+  align-content: center;
   justify-items: start;
   gap: 7px;
   padding: 8px 10px;
@@ -285,9 +292,9 @@ textarea {
 }
 
 .tab-icon {
-  width: 20px;
-  height: 20px;
-  margin-bottom: 1px;
+  width: 18px;
+  height: 18px;
+  margin-bottom: 0;
   fill: none;
   stroke: currentColor;
   stroke-width: 2;
@@ -301,8 +308,8 @@ textarea {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 20px;
-  height: 20px;
+  min-width: 18px;
+  height: 18px;
   padding: 0 6px;
   border-radius: 999px;
   color: var(--muted);
