@@ -25,7 +25,7 @@ export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir 
     return replyTemporary(ctx, 'Готов публиковать посты. Отправьте текст, фото, видео или файл. Для ссылки ученику используйте /link.', undefined, 18000);
   });
 
-  bot.hears(/^(help|хелп|\/help)$/i, async (ctx) => {
+  bot.command('help', async (ctx) => {
     await deleteCommandMessage(ctx);
     if (!isAdmin(ctx, adminIds)) return replyTemporary(ctx, 'Нет доступа.');
     return ctx.reply([
@@ -41,7 +41,7 @@ export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir 
     ].join('\n'));
   });
 
-  bot.hears(/^(manage|управление|сайт|\/manage)$/i, async (ctx) => {
+  bot.command('manage', async (ctx) => {
     await deleteCommandMessage(ctx);
     if (!isAdmin(ctx, adminIds)) return replyTemporary(ctx, 'Нет доступа.');
     const key = process.env.SITE_ADMIN_KEY || process.env.TELEGRAM_WEBHOOK_SECRET || '';
@@ -50,7 +50,7 @@ export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir 
     return ctx.reply(`Управление материалами на сайте:\n${baseUrl}/?manage=${encodeURIComponent(key)}`);
   });
 
-  bot.hears(/^(link|ссылка|доступ|\/link)$/i, async (ctx) => {
+  bot.command('link', async (ctx) => {
     await deleteCommandMessage(ctx);
     if (!isAdmin(ctx, adminIds)) return replyTemporary(ctx, 'Нет доступа.');
 
@@ -60,7 +60,7 @@ export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir 
     );
   });
 
-  bot.hears(/^(topic|раздел|\/topic)$/i, async (ctx) => {
+  bot.command('topic', async (ctx) => {
     await deleteCommandMessage(ctx);
     if (!isAdmin(ctx, adminIds)) return replyTemporary(ctx, 'Нет доступа.');
     const topics = normalizeTopics(store.getTopics());
@@ -71,7 +71,7 @@ export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir 
     );
   });
 
-  bot.hears(/^(?:\/topic_add|добавить раздел)\s+(.+)$/i, async (ctx) => {
+  bot.hears(/^\/topic_add\s+(.+)$/, async (ctx) => {
     await deleteCommandMessage(ctx);
     if (!isAdmin(ctx, adminIds)) return replyTemporary(ctx, 'Нет доступа.');
     const label = ctx.match[1].trim();
@@ -79,7 +79,7 @@ export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir 
     return ctx.reply(`Раздел добавлен: ${topic.label}`);
   });
 
-  bot.hears(/^(?:\/subtopic_add|добавить подраздел)\s+(.+)$/i, async (ctx) => {
+  bot.hears(/^\/subtopic_add\s+(.+)$/, async (ctx) => {
     await deleteCommandMessage(ctx);
     if (!isAdmin(ctx, adminIds)) return replyTemporary(ctx, 'Нет доступа.');
     const [parentText, labelText] = ctx.match[1].split('|').map(s => s.trim());
@@ -171,7 +171,7 @@ export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir 
   bot.on('message', async (ctx) => {
     if (!isAdmin(ctx, adminIds)) return;
     const textOrCaption = ctx.message.text || ctx.message.caption || '';
-    if (textOrCaption.startsWith('/')) return;
+    if (textOrCaption.trim().startsWith('/')) return;
 
     if (ctx.message.media_group_id) {
       bufferAlbum(ctx, albumBuffers, () => askAlbumTopic({ ctx, store, albumBuffers, pendingCache }));
