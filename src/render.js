@@ -518,27 +518,9 @@ function renderManagePost(post, adminKey) {
           <time datetime="${escapeHtml(post.createdAt)}">${escapeHtml(formatDay(post.createdAt))} ${escapeHtml(formatDateTime(post.createdAt))}</time>
         </div>
         ${post.text ? `<div class="post-text">${linkify(escapeHtml(post.text))}</div>` : ''}
-        ${post.media?.length ? `<div class="media-grid">${post.media.map((m, index) => renderManageMedia(m, index, post.id, adminKey)).join('')}</div>` : ''}
+        ${post.media?.length ? `<div class="media-grid">${post.media.map((m, index) => renderMedia(m, { postId: post.id, index })).join('')}</div>` : ''}
       </div>
     </article>
-  `;
-}
-
-function renderManageMedia(m, index, postId, adminKey) {
-  const mediaHtml = renderMedia(m);
-  if (m.kind === 'photo') return mediaHtml;
-  
-  return `
-    <div class="manage-media-wrap">
-      ${mediaHtml}
-      <form class="manage-rename-form" method="post" action="/?manage=${encodeURIComponent(adminKey)}">
-        <input type="hidden" name="action" value="rename-media">
-        <input type="hidden" name="postId" value="${escapeHtml(postId)}">
-        <input type="hidden" name="mediaIndex" value="${index}">
-        <input class="manage-rename-input" type="text" name="newName" value="${escapeHtml(m.name || '')}" placeholder="Новое название (пусто = по умолчанию)">
-        <button class="manage-rename-btn" type="submit">Сохранить</button>
-      </form>
-    </div>
   `;
 }
 
@@ -572,7 +554,7 @@ function getPostTopicId(post, topics = []) {
   return 'other';
 }
 
-function renderMedia(item) {
+function renderMedia(item, manageData = null) {
   if (item.kind === 'photo') {
     return `
       <button class="photo-open" type="button" data-photo-src="${escapeHtml(item.url)}" aria-label="Открыть фото на весь экран">
@@ -604,8 +586,9 @@ function renderMedia(item) {
             </div>
             <div class="video-menu-wrap">
               <button class="video-menu-button" type="button" aria-label="Действия с видео" aria-expanded="false">•••</button>
-              <div class="video-menu" hidden>
+              <div class="voice-menu" hidden>
                 <a href="${escapeHtml(item.url)}" download>Скачать</a>
+                ${manageData ? `<button type="button" data-rename-media="${manageData.index}" data-post-id="${escapeHtml(manageData.postId)}">Переименовать</button>` : ''}
                 <button class="is-active" type="button" data-video-speed="1">Скорость 1x</button>
                 <button type="button" data-video-speed="1.25">Скорость 1.25x</button>
                 <button type="button" data-video-speed="1.5">Скорость 1.5x</button>
@@ -639,6 +622,7 @@ function renderMedia(item) {
           <button class="voice-menu-button" type="button" aria-label="Действия с голосовым" aria-expanded="false">•••</button>
           <div class="voice-menu" hidden>
             <a href="${escapeHtml(item.url)}" download>Скачать</a>
+            ${manageData ? `<button type="button" data-rename-media="${manageData.index}" data-post-id="${escapeHtml(manageData.postId)}">Переименовать</button>` : ''}
             <button class="is-active" type="button" data-speed="1">Скорость 1x</button>
             <button type="button" data-speed="1.5">Скорость 1.5x</button>
             <button type="button" data-speed="2">Скорость 2x</button>
@@ -667,6 +651,14 @@ function renderMedia(item) {
         <strong>${escapeHtml(fileName)}</strong>
         <span data-file-status>Файл можно скачать на устройство</span>
       </div>
+      ${manageData ? `
+        <div class="voice-menu-wrap file-manage-menu" style="position: relative; align-self: center;">
+          <button class="voice-menu-button" type="button" aria-expanded="false" style="margin: 0;">•••</button>
+          <div class="voice-menu" hidden style="top: 100%; right: 0; bottom: auto; margin-top: 8px;">
+            <button type="button" data-rename-media="${manageData.index}" data-post-id="${escapeHtml(manageData.postId)}">Переименовать</button>
+          </div>
+        </div>
+      ` : ''}
     </article>
   `;
 }

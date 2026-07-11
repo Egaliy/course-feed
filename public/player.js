@@ -1,4 +1,10 @@
 document.addEventListener('click', async (event) => {
+  const renameButton = event.target.closest('[data-rename-media]');
+  if (renameButton) {
+    handleRenameClick(renameButton);
+    return;
+  }
+
   const photoButton = event.target.closest('.photo-open[data-photo-src]');
   if (photoButton) {
     openPhotoLightbox(photoButton.dataset.photoSrc);
@@ -141,8 +147,37 @@ function openPhotoLightbox(src) {
     <img src="${escapeAttribute(src)}" alt="">
   `;
 
-  document.body.append(lightbox);
-  document.body.classList.add('is-photo-open');
+  document.body.appendChild(lightbox);
+  // force reflow
+  void lightbox.offsetWidth;
+  lightbox.classList.add('is-open');
+}
+
+function handleRenameClick(button) {
+  const newName = prompt('Введите новое название:');
+  if (newName === null) return;
+
+  const form = document.createElement('form');
+  form.method = 'post';
+  form.action = window.location.href;
+
+  const fields = [
+    { name: 'action', value: 'rename-media' },
+    { name: 'postId', value: button.dataset.postId },
+    { name: 'mediaIndex', value: button.dataset.renameMedia },
+    { name: 'newName', value: newName.trim() }
+  ];
+
+  for (const field of fields) {
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = field.name;
+    input.value = field.value;
+    form.appendChild(input);
+  }
+
+  document.body.appendChild(form);
+  form.submit();
 }
 
 function closePhotoLightbox() {
