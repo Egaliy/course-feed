@@ -9,7 +9,8 @@ import {
   getPendingPublication,
   hasBlobStorage,
   setAdminTopicSelection,
-  uploadTelegramFileToBlob
+  uploadTelegramFileToBlob,
+  deleteBlobPost
 } from '../src/blob-storage.js';
 import { extractMedia, extractText } from '../src/media.js';
 
@@ -132,6 +133,35 @@ async function handleUpdate({ update, botToken }) {
 
   if (text.startsWith('/')) return;
 
+  if (message.reply_to_message && message.reply_to_message.text && message.reply_to_message.text.includes('(ID: ')) {
+    const match = message.reply_to_message.text.match(/\(ID:\s*([A-Za-z0-9_-]+)\)/);
+    if (match) {
+      const pendingId = match[1];
+      const pending = await getPendingPublication(pendingId);
+      if (pending) {
+        pending.media.forEach(m => m.name = text.trim());
+        await addPendingPublication(pending); // overwrite
+        const topics = await getBlobTopics();
+        
+        const keyboard = chunkButtons(topics.map((topic) => ({
+          text: topic.parentId ? `↳ ${topic.label}` : topic.label,
+          callback_data: `pub:${pending.id}:${topic.id}`
+        })), 1);
+        if (pending.media && pending.media.length > 0) {
+          keyboard.push([{ text: '📝 Переименовать файлы', callback_data: `ren:${pending.id}` }]);
+        }
+
+        await sendMessage({
+          botToken,
+          chatId,
+          text: `Имена файлов обновлены! Куда опубликовать: ${describeDraft({ text: pending.text, media: pending.media })}?`,
+          replyMarkup: { inline_keyboard: keyboard }
+        });
+        return;
+      }
+    }
+  }
+
   await askPublicationTopic({ message, botToken, chatId, userId });
 }
 
@@ -159,15 +189,21 @@ async function askPublicationTopic({ message, botToken, chatId, userId }) {
     getBlobTopics()
   ]);
 
+  const keyboard = chunkButtons(topics.map((topic) => ({
+    text: topic.parentId ? `↳ ${topic.label}` : topic.label,
+    callback_data: `pub:${pending.id}:${topic.id}`
+  })), 1);
+
+  if (pending.media && pending.media.length > 0) {
+    keyboard.push([{ text: '📝 Переименовать файлы', callback_data: `ren:${pending.id}` }]);
+  }
+
   await sendMessage({
     botToken,
     chatId,
     text: `Куда опубликовать: ${describeDraft({ text, media })}?`,
     replyMarkup: {
-      inline_keyboard: chunkButtons(topics.map((topic) => ({
-        text: topic.parentId ? `↳ ${topic.label}` : topic.label,
-        callback_data: `pub:${pending.id}:${topic.id}`
-      })), 1)
+      inline_keyboard: keyboard
     }
   });
 }
@@ -216,6 +252,26 @@ async function handleCallback({ callback, botToken }) {
     } else {
       await answerCallback({ botToken, callbackId: callback.id, text: 'Не найдено или уже удалено' });
     }
+    return;
+  }
+
+  const renMatch = payload.match(/^ren:([A-Za-z0-9_-]+)$/);
+  if (renMatch) {
+    const pendingId = renMatch[1];
+    const pending = await getPendingPublication(pendingId);
+    if (!pending) {
+      await answerCallback({ botToken, callbackId: callback.id, text: 'Публикация не найдена или устарела.' });
+      return;
+    }
+    
+    await answerCallback({ botToken, callbackId: callback.id });
+    await deleteMessage({ botToken, chatId, messageId: callback.message.message_id });
+    await sendMessage({
+      botToken,
+      chatId,
+      text: `Отправьте мне новое имя прикрепленных файлов в ответ на это сообщение.\n\n(ID: ${pendingId})`,
+      replyMarkup: { force_reply: true }
+    });
     return;
   }
 
