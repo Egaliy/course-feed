@@ -264,7 +264,7 @@ async function askAlbumTopic({ ctx, store, albumBuffers, pendingCache }) {
     text: topic.parentId ? `↳ ${topic.label}` : topic.label,
     callback_data: `pub:${pendingId}:${topic.id}`
   })), 1);
-  // Rename button removed in favor of Web UI
+  if (allMedia && allMedia.length > 0) keyboard.push([{ text: '📝 Переименовать файлы', callback_data: `ren:${pendingId}` }]);
 
   await ctx.telegram.sendMessage(album.chatId, `Куда опубликовать: ${describeDraft({ text, media: allMedia })}?`, {
     reply_markup: { inline_keyboard: keyboard }
@@ -277,7 +277,7 @@ async function askPublicationTopic(ctx, store, pendingId, text, media) {
     text: topic.parentId ? `↳ ${topic.label}` : topic.label,
     callback_data: `pub:${pendingId}:${topic.id}`
   })), 1);
-  // Rename button removed in favor of Web UI
+  if (media && media.length > 0) keyboard.push([{ text: '📝 Переименовать файлы', callback_data: `ren:${pendingId}` }]);
 
   await ctx.reply(`Куда опубликовать: ${describeDraft({ text, media })}?`, {
     reply_markup: { inline_keyboard: keyboard }
