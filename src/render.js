@@ -610,7 +610,7 @@ function renderMedia(item) {
           <span class="voice-play-icon" aria-hidden="true"></span>
         </button>
         <div class="voice-content">
-          <div class="voice-title">Голосовое сообщение</div>
+          <div class="voice-title">${escapeHtml(item.name || 'Голосовое сообщение')}</div>
           <div class="voice-track" role="slider" aria-label="Прогресс голосового сообщения" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
             <span class="voice-progress"></span>
           </div>

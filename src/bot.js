@@ -168,8 +168,45 @@ export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir 
     }
   });
 
+  bot.action(/^ren:([A-Za-z0-9_-]+)$/, async (ctx) => {
+    if (!isAdmin(ctx, adminIds)) return ctx.answerCbQuery('Нет доступа.');
+    const pendingId = ctx.match[1];
+    if (!pendingCache.has(pendingId)) return ctx.answerCbQuery('Публикация не найдена или устарела.');
+    
+    await ctx.answerCbQuery();
+    await ctx.deleteMessage().catch(() => {});
+    await ctx.reply(`Отправьте новое название для прикрепленных файлов в ответ на это сообщение.\n\n(ID: ${pendingId})`, {
+      reply_markup: { force_reply: true }
+    });
+  });
+
   bot.on('message', async (ctx) => {
     if (!isAdmin(ctx, adminIds)) return;
+
+    const replyText = ctx.message.reply_to_message?.text || '';
+    if (replyText.includes('(ID: ')) {
+      const match = replyText.match(/\(ID: ([A-Za-z0-9_-]+)\)/);
+      if (match) {
+        const pendingId = match[1];
+        const pending = pendingCache.get(pendingId);
+        if (pending) {
+          const newName = (ctx.message.text || '').trim();
+          if (newName) {
+            for (const m of pending.media) {
+              if (m.kind === 'audio' || m.kind === 'file' || m.kind === 'video') {
+                m.name = newName;
+              }
+            }
+          }
+          await ctx.deleteMessage().catch(() => {});
+          await ctx.telegram.deleteMessage(ctx.chat.id, ctx.message.reply_to_message.message_id).catch(() => {});
+          
+          await askPublicationTopic(ctx, store, pendingId, pending.text, pending.media);
+          return;
+        }
+      }
+    }
+
     const textOrCaption = ctx.message.text || ctx.message.caption || '';
     if (textOrCaption.trim().startsWith('/')) return;
 
@@ -223,25 +260,27 @@ async function askAlbumTopic({ ctx, store, albumBuffers, pendingCache }) {
   });
 
   const topics = normalizeTopics(await store.getTopics());
+  const keyboard = chunkButtons(topics.map((topic) => ({
+    text: topic.parentId ? `↳ ${topic.label}` : topic.label,
+    callback_data: `pub:${pendingId}:${topic.id}`
+  })), 1);
+  if (allMedia && allMedia.length > 0) keyboard.push([{ text: '📝 Переименовать файлы', callback_data: `ren:${pendingId}` }]);
+
   await ctx.telegram.sendMessage(album.chatId, `Куда опубликовать: ${describeDraft({ text, media: allMedia })}?`, {
-    reply_markup: {
-      inline_keyboard: chunkButtons(topics.map((topic) => ({
-        text: topic.parentId ? `↳ ${topic.label}` : topic.label,
-        callback_data: `pub:${pendingId}:${topic.id}`
-      })), 1)
-    }
+    reply_markup: { inline_keyboard: keyboard }
   });
 }
 
 async function askPublicationTopic(ctx, store, pendingId, text, media) {
   const topics = normalizeTopics(await store.getTopics());
+  const keyboard = chunkButtons(topics.map((topic) => ({
+    text: topic.parentId ? `↳ ${topic.label}` : topic.label,
+    callback_data: `pub:${pendingId}:${topic.id}`
+  })), 1);
+  if (media && media.length > 0) keyboard.push([{ text: '📝 Переименовать файлы', callback_data: `ren:${pendingId}` }]);
+
   await ctx.reply(`Куда опубликовать: ${describeDraft({ text, media })}?`, {
-    reply_markup: {
-      inline_keyboard: chunkButtons(topics.map((topic) => ({
-        text: topic.parentId ? `↳ ${topic.label}` : topic.label,
-        callback_data: `pub:${pendingId}:${topic.id}`
-      })), 1)
-    }
+    reply_markup: { inline_keyboard: keyboard }
   });
 }
 
@@ -376,9 +415,12 @@ function describeDraft({ text, media }) {
   const value = String(text || '').trim().replace(/\s+/g, ' ');
   if (value) return value.length > 34 ? `${value.slice(0, 34)}...` : value;
 
-  const labels = { photo: 'фото', audio: 'голосовое', video: 'видео', file: 'файл' };
-  const first = labels[media?.[0]?.kind] || 'материал';
-  return media.length > 1 ? `${first} +${media.length - 1}` : first;
+  const firstMedia = media?.[0];
+  if (firstMedia?.name) return media.length > 1 ? `"${firstMedia.name}" +${media.length - 1}` : `"${firstMedia.name}"`;
+
+  const labels = { photo: 'Фото', audio: 'Голосовое', video: 'Видео', file: 'Файл' };
+  const first = labels[firstMedia?.kind] || 'Материал';
+  return (media && media.length > 1) ? `${first} +${media.length - 1}` : first;
 }
 
 function chunkButtons(items, size) {
