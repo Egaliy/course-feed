@@ -74,7 +74,7 @@ export function renderManagePage({ title, posts, adminKey, notice = '', topics =
             <button class="danger-button" type="submit">Удалить выбранное</button>
           </div>
           <div class="feed">
-            ${sortedPosts.map((post) => renderManagePost(post, topicItems)).join('')}
+            ${sortedPosts.map((post) => renderManagePost(post, adminKey)).join('')}
           </div>
         </form>
       ` : renderEmptyState('Материалов пока нет.', 'all')}
@@ -503,7 +503,7 @@ function renderPost(post, topics = []) {
   `;
 }
 
-function renderManagePost(post) {
+function renderManagePost(post, adminKey) {
   const preview = getPostPreview(post);
 
   return `
@@ -518,9 +518,27 @@ function renderManagePost(post) {
           <time datetime="${escapeHtml(post.createdAt)}">${escapeHtml(formatDay(post.createdAt))} ${escapeHtml(formatDateTime(post.createdAt))}</time>
         </div>
         ${post.text ? `<div class="post-text">${linkify(escapeHtml(post.text))}</div>` : ''}
-        ${post.media?.length ? `<div class="media-grid">${post.media.map(renderMedia).join('')}</div>` : ''}
+        ${post.media?.length ? `<div class="media-grid">${post.media.map((m, index) => renderManageMedia(m, index, post.id, adminKey)).join('')}</div>` : ''}
       </div>
     </article>
+  `;
+}
+
+function renderManageMedia(m, index, postId, adminKey) {
+  const mediaHtml = renderMedia(m);
+  if (m.kind === 'photo') return mediaHtml;
+  
+  return `
+    <div class="manage-media-wrap">
+      ${mediaHtml}
+      <form class="manage-rename-form" method="post" action="/?manage=${encodeURIComponent(adminKey)}">
+        <input type="hidden" name="action" value="rename-media">
+        <input type="hidden" name="postId" value="${escapeHtml(postId)}">
+        <input type="hidden" name="mediaIndex" value="${index}">
+        <input class="manage-rename-input" type="text" name="newName" value="${escapeHtml(m.name || '')}" placeholder="Новое название (пусто = по умолчанию)">
+        <button class="manage-rename-btn" type="submit">Сохранить</button>
+      </form>
+    </div>
   `;
 }
 

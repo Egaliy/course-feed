@@ -2,7 +2,7 @@ import path from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { parseAccessToken } from '../src/access-token.js';
-import { deleteBlobPosts, deleteBlobPost, deleteBlobTopic, hasBlobStorage, readBlobState } from '../src/blob-storage.js';
+import { deleteBlobPosts, deleteBlobPost, deleteBlobTopic, renameBlobMedia, hasBlobStorage, readBlobState } from '../src/blob-storage.js';
 import { renderFeedPage, renderManagePage, renderRegistrationPage } from '../src/render.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -20,6 +20,17 @@ export default async function handler(req, res) {
         const topicId = String(req.body.topicId || '').trim();
         if (topicId) {
           await deleteBlobTopic(topicId);
+        }
+        redirect(res, `/?manage=${encodeURIComponent(getSiteAdminKey())}`);
+        return;
+      }
+      
+      if (req.body.action === 'rename-media') {
+        const postId = String(req.body.postId || '').trim();
+        const mediaIndex = parseInt(req.body.mediaIndex, 10);
+        const newName = String(req.body.newName || '').trim();
+        if (postId && !isNaN(mediaIndex)) {
+          await renameBlobMedia(postId, mediaIndex, newName);
         }
         redirect(res, `/?manage=${encodeURIComponent(getSiteAdminKey())}`);
         return;

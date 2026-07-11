@@ -180,6 +180,16 @@ export async function deleteBlobPosts(ids) {
   return true;
 }
 
+export async function renameBlobMedia(postId, mediaIndex, newName) {
+  const state = await readBlobState();
+  const post = state.posts.find((p) => p.id === postId);
+  if (!post || !post.media || !post.media[mediaIndex]) return false;
+  
+  post.media[mediaIndex].name = newName;
+  await writeBlobState(state);
+  return true;
+}
+
 export async function deleteBlobPost(id) {
   return deleteBlobPosts([id]);
 }
