@@ -191,7 +191,8 @@ function setupScrollableTabs() {
     });
 
     tabs.addEventListener('pointerdown', (event) => {
-      if (event.button !== 0 && event.pointerType === 'mouse') return;
+      if (event.pointerType !== 'mouse') return;
+      if (event.button !== 0) return;
 
       isPointerDown = true;
       isDragging = false;
