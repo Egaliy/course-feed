@@ -83,8 +83,8 @@ export class Store {
     return this.deletePosts([id]);
   }
 
-  getTopics() {
-    return this.state.topics || [];
+  async getTopics() {
+    return Array.isArray(this.state.topics) ? this.state.topics : [];
   }
 
   async addTopic(label, options = {}) {
@@ -137,8 +137,8 @@ export class Store {
     return false;
   }
 
-  getAdminTopicSelection(adminId) {
-    return (this.state.adminTopicSelections || {})[String(adminId)] || 'other';
+  async getAdminTopicSelection(adminId) {
+    return this.state.adminTopicSelections?.[String(adminId)] || 'other';
   }
 
   async setAdminTopicSelection(adminId, topicId) {

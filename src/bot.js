@@ -63,8 +63,8 @@ export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir 
   bot.command('topic', async (ctx) => {
     await deleteCommandMessage(ctx);
     if (!isAdmin(ctx, adminIds)) return replyTemporary(ctx, 'Нет доступа.');
-    const topics = normalizeTopics(store.getTopics());
-    const active = getTopicById(topics, store.getAdminTopicSelection(ctx.from?.id));
+    const topics = normalizeTopics(await store.getTopics());
+    const active = getTopicById(topics, await store.getAdminTopicSelection(ctx.from?.id));
     return ctx.reply(
       `Выберите раздел для следующих публикаций.\nСейчас: ${active.label}`,
       Markup.inlineKeyboard(topics.map((t) => [Markup.button.callback(t.id === active.id ? `✓ ${t.label}` : t.label, `topic:${t.id}`)]))
@@ -84,7 +84,7 @@ export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir 
     if (!isAdmin(ctx, adminIds)) return replyTemporary(ctx, 'Нет доступа.');
     const [parentText, labelText] = ctx.match[1].split('|').map(s => s.trim());
     if (!parentText || !labelText) return ctx.reply('Напишите так: /subtopic_add Раздел | Название подраздела');
-    const topics = normalizeTopics(store.getTopics());
+    const topics = normalizeTopics(await store.getTopics());
     const parent = findTopicByText(topics, parentText);
     if (!parent) return ctx.reply(`Раздел не найден: ${parentText}`);
     const topic = await store.addTopic(labelText, { parentId: parent.id });
@@ -108,7 +108,7 @@ export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir 
     if (!isAdmin(ctx, adminIds)) return ctx.answerCbQuery('Нет доступа.');
     const topicId = ctx.match[1];
     await store.setAdminTopicSelection(ctx.from?.id, topicId);
-    const topics = normalizeTopics(store.getTopics());
+    const topics = normalizeTopics(await store.getTopics());
     const topic = getTopicById(topics, topicId);
     await ctx.answerCbQuery(`Раздел: ${topic.label}`);
     await ctx.deleteMessage().catch(() => {});
@@ -145,7 +145,7 @@ export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir 
       return;
     }
 
-    const topics = normalizeTopics(store.getTopics());
+    const topics = normalizeTopics(await store.getTopics());
     const topic = topics.find((item) => item.id === topicId);
     if (!topic) {
       await ctx.answerCbQuery('Раздел не найден.');
@@ -222,7 +222,7 @@ async function askAlbumTopic({ ctx, store, albumBuffers, pendingCache }) {
     isAlbum: true
   });
 
-  const topics = normalizeTopics(store.getTopics());
+  const topics = normalizeTopics(await store.getTopics());
   await ctx.telegram.sendMessage(album.chatId, `Куда опубликовать: ${describeDraft({ text, media: allMedia })}?`, {
     reply_markup: {
       inline_keyboard: chunkButtons(topics.map((topic) => ({
@@ -234,7 +234,7 @@ async function askAlbumTopic({ ctx, store, albumBuffers, pendingCache }) {
 }
 
 async function askPublicationTopic(ctx, store, pendingId, text, media) {
-  const topics = normalizeTopics(store.getTopics());
+  const topics = normalizeTopics(await store.getTopics());
   await ctx.reply(`Куда опубликовать: ${describeDraft({ text, media })}?`, {
     reply_markup: {
       inline_keyboard: chunkButtons(topics.map((topic) => ({
