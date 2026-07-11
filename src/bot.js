@@ -18,6 +18,7 @@ export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir 
   const albumBuffers = new Map();
   const authorCache = new Map();
   const pendingCache = new Map();
+  const adminRenameStateLocal = new Map();
 
   bot.start(async (ctx) => {
     await deleteCommandMessage(ctx);
@@ -173,35 +174,36 @@ export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir 
     const pendingId = ctx.match[1];
     if (!pendingCache.has(pendingId)) return ctx.answerCbQuery('Публикация не найдена или устарела.');
     
+    adminRenameStateLocal.set(ctx.from.id, pendingId);
+    
     await ctx.answerCbQuery();
     await ctx.deleteMessage().catch(() => {});
-    await ctx.reply(`Отправьте новое название для прикрепленных файлов в ответ на это сообщение.\n\n(ID: ${pendingId})`, {
-      reply_markup: { force_reply: true }
-    });
+    await ctx.reply(`Отправьте мне новое имя прикрепленных файлов (просто напишите следующим сообщением).`);
   });
 
   bot.on('message', async (ctx) => {
     if (!isAdmin(ctx, adminIds)) return;
 
-    const replyText = ctx.message.reply_to_message?.text || '';
-    if (replyText.includes('(ID: ')) {
-      const match = replyText.match(/\(ID: ([A-Za-z0-9_-]+)\)/);
-      if (match) {
-        const pendingId = match[1];
-        const pending = pendingCache.get(pendingId);
+    const text = extractText(ctx.message);
+    if (text && !text.startsWith('/')) {
+      const pendingIdToRename = adminRenameStateLocal.get(ctx.from.id);
+      if (pendingIdToRename) {
+        const pending = pendingCache.get(pendingIdToRename);
+        adminRenameStateLocal.delete(ctx.from.id);
+        
         if (pending) {
-          const newName = (ctx.message.text || '').trim();
-          if (newName) {
-            for (const m of pending.media) {
-              if (m.kind === 'audio' || m.kind === 'file' || m.kind === 'video') {
-                m.name = newName;
-              }
-            }
+          const newName = text.trim();
+          if (pending.isAlbum) {
+            pending.messages.forEach(msg => {
+              const items = extractMedia(msg);
+              items.forEach(item => item.name = newName);
+            });
+          } else {
+            pending.media.forEach(m => m.name = newName);
           }
-          await ctx.deleteMessage().catch(() => {});
-          await ctx.telegram.deleteMessage(ctx.chat.id, ctx.message.reply_to_message.message_id).catch(() => {});
           
-          await askPublicationTopic(ctx, store, pendingId, pending.text, pending.media);
+          await ctx.reply(`Имена файлов обновлены! Куда опубликовать?`);
+          await askPublicationTopic(ctx, store, pendingIdToRename, pending.text, pending.media);
           return;
         }
       }

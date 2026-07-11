@@ -9,6 +9,8 @@ import {
   getPendingPublication,
   hasBlobStorage,
   setAdminTopicSelection,
+  setAdminRenameState,
+  getAdminRenameState,
   uploadTelegramFileToBlob,
   deleteBlobPost
 } from '../src/blob-storage.js';
@@ -147,9 +149,35 @@ async function handleUpdate({ update, botToken }) {
           text: topic.parentId ? `↳ ${topic.label}` : topic.label,
           callback_data: `pub:${pending.id}:${topic.id}`
         })), 1);
-        if (pending.media && pending.media.length > 0) {
-          keyboard.push([{ text: '📝 Переименовать файлы', callback_data: `ren:${pending.id}` }]);
-        }
+        keyboard.push([{ text: '📝 Переименовать файлы', callback_data: `ren:${pending.id}` }]);
+
+        await sendMessage({
+          botToken,
+          chatId,
+          text: `Имена файлов обновлены! Куда опубликовать: ${describeDraft({ text: pending.text, media: pending.media })}?`,
+          replyMarkup: { inline_keyboard: keyboard }
+        });
+        return;
+      }
+    }
+  }
+
+  if (text && !text.startsWith('/')) {
+    const pendingIdToRename = await getAdminRenameState(userId);
+    if (pendingIdToRename) {
+      const pending = await getPendingPublication(pendingIdToRename);
+      await setAdminRenameState(userId, null); // clear state immediately
+      
+      if (pending) {
+        pending.media.forEach(m => m.name = text.trim());
+        await addPendingPublication(pending); // overwrite
+        const topics = await getBlobTopics();
+        
+        const keyboard = chunkButtons(topics.map((topic) => ({
+          text: topic.parentId ? `↳ ${topic.label}` : topic.label,
+          callback_data: `pub:${pending.id}:${topic.id}`
+        })), 1);
+        keyboard.push([{ text: '📝 Переименовать файлы', callback_data: `ren:${pending.id}` }]);
 
         await sendMessage({
           botToken,
@@ -258,19 +286,14 @@ async function handleCallback({ callback, botToken }) {
   const renMatch = payload.match(/^ren:([A-Za-z0-9_-]+)$/);
   if (renMatch) {
     const pendingId = renMatch[1];
-    const pending = await getPendingPublication(pendingId);
-    if (!pending) {
-      await answerCallback({ botToken, callbackId: callback.id, text: 'Публикация не найдена или устарела.' });
-      return;
-    }
+    await setAdminRenameState(userId, pendingId);
     
     await answerCallback({ botToken, callbackId: callback.id });
     await deleteMessage({ botToken, chatId, messageId: callback.message.message_id });
     await sendMessage({
       botToken,
       chatId,
-      text: `Отправьте мне новое имя прикрепленных файлов в ответ на это сообщение.\n\n(ID: ${pendingId})`,
-      replyMarkup: { force_reply: true }
+      text: `Отправьте мне новое имя прикрепленных файлов (просто напишите следующим сообщением).`
     });
     return;
   }

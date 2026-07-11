@@ -136,6 +136,22 @@ export async function deletePendingPublication(id) {
   await del(getPendingPath(pendingId), withBlobToken()).catch(() => {});
 }
 
+export async function setAdminRenameState(adminId, pendingId) {
+  const state = await readBlobState();
+  if (!state.adminRenameStates) state.adminRenameStates = {};
+  if (pendingId) {
+    state.adminRenameStates[adminId] = pendingId;
+  } else {
+    delete state.adminRenameStates[adminId];
+  }
+  await writeBlobState(state);
+}
+
+export async function getAdminRenameState(adminId) {
+  const state = await readBlobState();
+  return state.adminRenameStates?.[adminId] || null;
+}
+
 export async function setAdminTopicSelection(adminId, topicId) {
   const state = await readBlobState();
   const topics = normalizeTopics(state.topics);
@@ -266,6 +282,9 @@ function normalizeState(state) {
     adminCodes: Array.isArray(state?.adminCodes) ? state.adminCodes : [],
     topics: Array.isArray(state?.topics) ? state.topics : [],
     pendingPublications: Array.isArray(state?.pendingPublications) ? state.pendingPublications : [],
+    adminRenameStates: state?.adminRenameStates && typeof state.adminRenameStates === 'object'
+      ? state.adminRenameStates
+      : {},
     adminTopicSelections: state?.adminTopicSelections && typeof state.adminTopicSelections === 'object'
       ? state.adminTopicSelections
       : {}
