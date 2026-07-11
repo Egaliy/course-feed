@@ -148,7 +148,7 @@ async function handleUpdate({ update, botToken }) {
           callback_data: `pub:${pending.id}:${topic.id}`
         })), 1);
         if (pending.media && pending.media.length > 0) {
-          keyboard.push([{ text: '📝 Переименовать файлы', callback_data: `ren:${pending.id}` }]);
+          // Rename button removed in favor of Web UI
         }
 
         await sendMessage({
@@ -195,7 +195,7 @@ async function askPublicationTopic({ message, botToken, chatId, userId }) {
   })), 1);
 
   if (pending.media && pending.media.length > 0) {
-    keyboard.push([{ text: '📝 Переименовать файлы', callback_data: `ren:${pending.id}` }]);
+    // Rename button removed in favor of Web UI
   }
 
   await sendMessage({
