@@ -16,8 +16,10 @@ export default async function handler(req, res) {
 
   if (isManageRequest(req)) {
     if (req.method === 'POST') {
-      if (req.body.action === 'delete-topic') {
-        const topicId = String(req.body.topicId || '').trim();
+      const body = parseBody(req.body);
+
+      if (body.action === 'delete-topic') {
+        const topicId = String(body.topicId || '').trim();
         if (topicId) {
           await deleteBlobTopic(topicId);
         }
@@ -25,10 +27,10 @@ export default async function handler(req, res) {
         return;
       }
       
-      if (req.body.action === 'rename-media') {
-        const postId = String(req.body.postId || '').trim();
-        const mediaIndex = parseInt(req.body.mediaIndex, 10);
-        const newName = String(req.body.newName || '').trim();
+      if (body.action === 'rename-media') {
+        const postId = String(body.postId || '').trim();
+        const mediaIndex = parseInt(body.mediaIndex, 10);
+        const newName = String(body.newName || '').trim();
         if (postId && !isNaN(mediaIndex)) {
           await renameBlobMedia(postId, mediaIndex, newName);
         }
@@ -36,7 +38,7 @@ export default async function handler(req, res) {
         return;
       }
       
-      const ids = getPostIdsFromBody(req.body);
+      const ids = getPostIdsFromBody(body);
       await deleteBlobPosts(ids);
       redirect(res, `/?manage=${encodeURIComponent(getSiteAdminKey())}&notice=${encodeURIComponent(`Удалено: ${ids.length}`)}`);
       return;
@@ -76,6 +78,24 @@ function isManageRequest(req) {
 
 function getSiteAdminKey() {
   return process.env.SITE_ADMIN_KEY || process.env.TELEGRAM_WEBHOOK_SECRET || '';
+}
+
+function parseBody(body) {
+  if (typeof body === 'object' && body !== null) return body;
+  if (typeof body === 'string') {
+    const params = new URLSearchParams(body);
+    const result = {};
+    for (const [key, value] of params.entries()) {
+      if (result[key] !== undefined) {
+        if (!Array.isArray(result[key])) result[key] = [result[key]];
+        result[key].push(value);
+      } else {
+        result[key] = value;
+      }
+    }
+    return result;
+  }
+  return {};
 }
 
 function getPostIdsFromBody(body) {
