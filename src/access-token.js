@@ -17,14 +17,18 @@ export function createAccessToken({ months, secret }) {
   return `${body}.${sign(body, secret)}`;
 }
 
-export function createCompactAccessToken({ months, secret }) {
+export function createCompactAccessToken({ months = 0, days = 0, secret }) {
   const now = new Date();
   const expiresAt = new Date(now);
-  expiresAt.setMonth(expiresAt.getMonth() + months);
+  if (days) {
+    expiresAt.setDate(expiresAt.getDate() + days);
+  } else {
+    expiresAt.setMonth(expiresAt.getMonth() + months);
+  }
 
   const payload = Buffer.alloc(10);
   payload.writeUInt8(2, 0);
-  payload.writeUInt8(months, 1);
+  payload.writeUInt8(days ? 200 + days : months, 1);
   payload.writeUInt32BE(Math.floor(expiresAt.getTime() / 1000), 2);
   crypto.randomBytes(4).copy(payload, 6);
 
@@ -72,12 +76,15 @@ export function parseCompactAccessToken(token, secret) {
   const expected = signBuffer(payload, secret).subarray(0, 8).toString('base64url');
   if (!timingSafeEqual(signature, expected)) return null;
 
-  const months = payload.readUInt8(1);
+  const duration = payload.readUInt8(1);
+  const days = duration >= 200 ? duration - 200 : 0;
+  const months = days ? 0 : duration;
   const expiresAt = new Date(payload.readUInt32BE(2) * 1000).toISOString();
 
   return {
     v: 2,
     months,
+    ...(days ? { days } : {}),
     expiresAt
   };
 }

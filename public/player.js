@@ -115,12 +115,25 @@ document.addEventListener('DOMContentLoaded', () => {
   setupFileCards();
   setupManageSelection();
   setupScrollableTabs();
+  setupCopyGuard();
   updateUnreadTabs();
   updateNewBadges();
   document.querySelectorAll('.content-tabs a').forEach((link) => {
     link.addEventListener('click', markVisiblePostsRead);
   });
 });
+
+function setupCopyGuard() {
+  const protectedShell = document.querySelector('.feed-shell:not(.manage-shell)');
+  if (!protectedShell) return;
+
+  ['copy', 'cut', 'contextmenu', 'dragstart'].forEach((eventName) => {
+    protectedShell.addEventListener(eventName, (event) => {
+      if (event.target.closest('input, textarea, button, a, .voice-menu, .video-menu')) return;
+      event.preventDefault();
+    });
+  });
+}
 
 document.addEventListener('fullscreenchange', updateFullscreenButtons);
 document.addEventListener('webkitfullscreenchange', updateFullscreenButtons);

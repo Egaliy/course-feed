@@ -18,10 +18,12 @@ import {
 import { extractMedia, extractText } from '../src/media.js';
 
 const durations = [
-  { label: '1 месяц', months: 1 },
-  { label: '3 месяца', months: 3 },
-  { label: '6 месяцев', months: 6 },
-  { label: '9 месяцев', months: 9 }
+  { label: '3 дня', code: 'd3', days: 3 },
+  { label: '7 дней', code: 'd7', days: 7 },
+  { label: '1 месяц', code: 'm1', months: 1 },
+  { label: '3 месяца', code: 'm3', months: 3 },
+  { label: '6 месяцев', code: 'm6', months: 6 },
+  { label: '9 месяцев', code: 'm9', months: 9 }
 ];
 
 let botMenuCommandsConfigured = false;
@@ -101,7 +103,7 @@ async function handleUpdate({ update, botToken }) {
       replyMarkup: {
         inline_keyboard: durations.map((item) => [{
           text: item.label,
-          callback_data: `link:${item.months}`
+          callback_data: `link:${item.code}`
         }])
       }
     });
@@ -286,19 +288,6 @@ async function handleCallback({ callback, botToken }) {
     return;
   }
 
-  const delMatch = payload.match(/^del:([A-Za-z0-9_-]+)$/);
-  if (delMatch) {
-    const deleted = await deleteBlobPost(delMatch[1]);
-    if (deleted) {
-      await answerCallback({ botToken, callbackId: callback.id, text: 'Удалено' });
-      await sendMessage({ botToken, chatId, text: 'Материал удален.' });
-      await deleteMessage({ botToken, chatId, messageId: callback.message.message_id });
-    } else {
-      await answerCallback({ botToken, callbackId: callback.id, text: 'Не найдено или уже удалено' });
-    }
-    return;
-  }
-
   const renMatch = payload.match(/^ren:([A-Za-z0-9_-]+)$/);
   if (renMatch) {
     const pendingId = renMatch[1];
@@ -314,30 +303,30 @@ async function handleCallback({ callback, botToken }) {
     return;
   }
 
-  const match = payload.match(/^link:(\d+)$/);
+  const match = payload.match(/^link:([A-Za-z0-9]+)$/);
   if (!match) return;
 
-  const months = Number(match[1]);
-  if (!durations.some((item) => item.months === months)) {
+  const duration = getDurationByCode(match[1]);
+  if (!duration) {
     await answerCallback({ botToken, callbackId: callback.id, text: 'Неизвестный срок' });
     return;
   }
 
-  const url = await createAccessUrl(months);
+  const url = await createAccessUrl(duration);
 
-  await answerCallback({ botToken, callbackId: callback.id, text: `${monthsText(months)}: ссылка создана` });
+  await answerCallback({ botToken, callbackId: callback.id, text: `${durationText(duration)}: ссылка создана` });
   await deleteMessage({ botToken, chatId, messageId: callback.message.message_id });
   await sendMessage({
     botToken,
     chatId,
-    text: `Ссылка-доступ на ${monthsText(months)}:\n${url}`
+    text: `Ссылка-доступ на ${durationText(duration)}:\n${url}`
   });
 }
 
-async function createAccessUrl(months) {
+async function createAccessUrl(duration) {
   const baseUrl = (process.env.PUBLIC_BASE_URL || 'https://course-feed.vercel.app').replace(/\/$/, '');
 
-  const token = createCompactAccessToken({ months, secret: getAccessSecret() });
+  const token = createCompactAccessToken({ ...duration, secret: getAccessSecret() });
   return `${baseUrl}/a/${token}`;
 }
 
@@ -348,7 +337,7 @@ async function sendHelpMessage({ botToken, chatId }) {
     text: [
       'Команды бота:',
       '',
-      '/link - создать ссылку доступа на 1, 3, 6 или 9 месяцев',
+      '/link - создать ссылку доступа на 3 дня, 7 дней, 1, 3, 6 или 9 месяцев',
       '/manage - открыть управление материалами на сайте',
       '/delete - удалить материалы через бота',
       '/topic_add Название - добавить новый раздел',
@@ -711,6 +700,24 @@ function getAccessSecret() {
 
 function getSiteAdminKey() {
   return process.env.SITE_ADMIN_KEY || process.env.TELEGRAM_WEBHOOK_SECRET || '';
+}
+
+function getDurationByCode(code) {
+  const value = String(code || '');
+  const legacyMonths = Number(value);
+  return durations.find((item) => item.code === value)
+    || durations.find((item) => item.months === legacyMonths)
+    || null;
+}
+
+function durationText(duration) {
+  if (duration.days) {
+    if (duration.days === 1) return '1 день';
+    if (duration.days > 1 && duration.days < 5) return `${duration.days} дня`;
+    return `${duration.days} дней`;
+  }
+
+  return monthsText(duration.months);
 }
 
 function monthsText(months) {

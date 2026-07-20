@@ -151,6 +151,19 @@ export function renderRegistrationSuccessPage({ title }) {
   `);
 }
 
+export function renderDeviceLimitPage({ title, maxDevices = 3 }) {
+  return page(`Лимит устройств - ${title}`, `
+    <main class="state-page">
+      <section class="state-card">
+        <p class="eyebrow">Доступ ограничен</p>
+        <h1>Слишком много устройств</h1>
+        <p>Эта ссылка уже открыта на ${escapeHtml(maxDevices)} устройствах. Напишите Александре, если нужно заменить устройство или продлить доступ.</p>
+        <a class="admin-link state-link" href="https://t.me/BorisovaAleksandraP" target="_blank" rel="noreferrer">Написать Александре</a>
+      </section>
+    </main>
+  `);
+}
+
 export function renderExpiredPage({ title }) {
   return page(title, `
     <main class="state-page expired-shell">
@@ -486,7 +499,7 @@ function isShortAccessToken(token) {
 }
 
 function renderPost(post, topics = []) {
-  const text = post.text ? `<div class="post-text">${linkify(escapeHtml(post.text))}</div>` : '';
+  const text = post.text ? `<div class="post-text">${linkify(post.text)}</div>` : '';
   const media = post.media?.length ? `<div class="media-grid">${post.media.map(renderMedia).join('')}</div>` : '';
 
   return `
@@ -517,7 +530,12 @@ function renderManagePost(post, adminKey) {
           <strong>${escapeHtml(preview)}</strong>
           <time datetime="${escapeHtml(post.createdAt)}">${escapeHtml(formatDay(post.createdAt))} ${escapeHtml(formatDateTime(post.createdAt))}</time>
         </div>
-        ${post.text ? `<div class="post-text">${linkify(escapeHtml(post.text))}</div>` : ''}
+        <label class="manage-edit">
+          <span>Название или текст</span>
+          <textarea name="postText:${escapeHtml(post.id)}" rows="3">${escapeHtml(post.text || '')}</textarea>
+        </label>
+        <button class="secondary-button manage-save" type="submit" name="updatePostId" value="${escapeHtml(post.id)}">Сохранить</button>
+        ${post.text ? `<div class="post-text">${linkify(post.text)}</div>` : ''}
         ${post.media?.length ? `<div class="media-grid">${post.media.map((m, index) => renderMedia(m, { postId: post.id, index })).join('')}</div>` : ''}
       </div>
     </article>
@@ -678,7 +696,18 @@ function page(title, body) {
 }
 
 function linkify(value) {
-  return value.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noreferrer">$1</a>');
+  const placeholders = [];
+  const source = String(value || '').replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/g, (_, label, url) => {
+    const token = `@@LINK_${placeholders.length}@@`;
+    placeholders.push(`<a href="${escapeHtml(url)}" target="_blank" rel="noreferrer">${escapeHtml(label)}</a>`);
+    return token;
+  });
+
+  let html = escapeHtml(source).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noreferrer">$1</a>');
+  placeholders.forEach((link, index) => {
+    html = html.replace(`@@LINK_${index}@@`, link);
+  });
+  return html;
 }
 
 function formatDateTime(value) {

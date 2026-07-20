@@ -11,6 +11,7 @@ const telegramFileBase = 'https://api.telegram.org/file/bot';
 export const defaultState = {
   posts: [],
   accessLinks: [],
+  accessDevices: {},
   registrations: [],
   students: [],
   adminCodes: [],
@@ -27,11 +28,14 @@ export async function readBlobState() {
   if (!hasBlobStorage()) return structuredClone(defaultState);
 
   try {
-    const latestPathname = await getLatestStatePathname();
-    const state = latestPathname ? await readBlobJson(latestPathname) : await readBlobJson(dbPathname);
+    const state = await readBlobJson(dbPathname);
     return normalizeState(state);
   } catch (error) {
-    if (isMissingBlobError(error)) return structuredClone(defaultState);
+    if (isMissingBlobError(error)) {
+      const latestPathname = await getLatestStatePathname();
+      const state = latestPathname ? await readBlobJson(latestPathname) : structuredClone(defaultState);
+      return normalizeState(state);
+    }
     throw error;
   }
 }
@@ -206,8 +210,57 @@ export async function renameBlobMedia(postId, mediaIndex, newName) {
   return true;
 }
 
+export async function updateBlobPostText(id, text) {
+  const state = await readBlobState();
+  const postId = String(id || '');
+  const post = state.posts.find((item) => item.id === postId);
+
+  if (!post) return false;
+
+  post.text = String(text || '').trim();
+  await writeBlobState(state);
+  return true;
+}
+
 export async function deleteBlobPost(id) {
   return deleteBlobPosts([id]);
+}
+
+export async function registerAccessDevice({ token, deviceId, userAgent = '', maxDevices = 3 }) {
+  const state = await readBlobState();
+  const tokenHash = hashAccessToken(token);
+  const cleanDeviceId = String(deviceId || '').trim();
+  const now = new Date().toISOString();
+  if (!tokenHash || !cleanDeviceId) return { allowed: false, devices: 0, maxDevices };
+
+  const allDevices = state.accessDevices && typeof state.accessDevices === 'object'
+    ? state.accessDevices
+    : {};
+  const devices = Array.isArray(allDevices[tokenHash]) ? allDevices[tokenHash] : [];
+  const existing = devices.find((item) => item.id === cleanDeviceId);
+
+  if (existing) {
+    existing.lastSeenAt = now;
+    existing.userAgent = String(userAgent || '').slice(0, 180);
+  } else {
+    if (devices.length >= maxDevices) {
+      return { allowed: false, devices: devices.length, maxDevices };
+    }
+
+    devices.push({
+      id: cleanDeviceId,
+      firstSeenAt: now,
+      lastSeenAt: now,
+      userAgent: String(userAgent || '').slice(0, 180)
+    });
+  }
+
+  state.accessDevices = {
+    ...allDevices,
+    [tokenHash]: devices
+  };
+  await writeBlobState(state);
+  return { allowed: true, devices: devices.length, maxDevices };
 }
 
 export async function getRecentBlobPosts(limit = 10) {
@@ -277,6 +330,7 @@ function normalizeState(state) {
     ...(state || {}),
     posts: Array.isArray(state?.posts) ? state.posts : [],
     accessLinks: Array.isArray(state?.accessLinks) ? state.accessLinks : [],
+    accessDevices: state?.accessDevices && typeof state.accessDevices === 'object' ? state.accessDevices : {},
     registrations: Array.isArray(state?.registrations) ? state.registrations : [],
     students: Array.isArray(state?.students) ? state.students : [],
     adminCodes: Array.isArray(state?.adminCodes) ? state.adminCodes : [],
@@ -289,6 +343,10 @@ function normalizeState(state) {
       ? state.adminTopicSelections
       : {}
   };
+}
+
+function hashAccessToken(token) {
+  return crypto.createHash('sha256').update(String(token || '')).digest('base64url');
 }
 
 function uniqueTopicId(topics, baseId) {

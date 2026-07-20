@@ -1,12 +1,22 @@
 import 'dotenv/config';
 import express from 'express';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { Store } from './store.js';
 import { createBot } from './bot.js';
 import { parseAccessToken } from './access-token.js';
-import { deleteBlobPosts, deleteBlobPost, deleteBlobTopic, hasBlobStorage, readBlobState } from './blob-storage.js';
 import {
+  deleteBlobPost,
+  deleteBlobPosts,
+  deleteBlobTopic,
+  hasBlobStorage,
+  readBlobState,
+  registerAccessDevice,
+  updateBlobPostText
+} from './blob-storage.js';
+import {
+  renderDeviceLimitPage,
   renderFeedPage,
   renderManagePage,
   renderRegistrationPage,
@@ -67,6 +77,12 @@ app.get('/', async (req, res) => {
     return;
   }
 
+  const device = await checkAccessDevice({ req, res, token });
+  if (!device.allowed) {
+    res.send(renderDeviceLimitPage({ title, maxDevices: device.maxDevices }));
+    return;
+  }
+
   res.send(renderFeedPage({ title, posts: getPosts(state), access, token, view: req.query.view, topics: state.topics }));
 });
 
@@ -90,13 +106,28 @@ app.post('/', async (req, res) => {
     return;
   }
 
+  const updatePostId = getUpdatePostId(req.body);
+  if (updatePostId) {
+    const updated = useBlobStorage
+      ? await updateBlobPostText(updatePostId, getPostTextFromBody(req.body, updatePostId))
+      : await updateLocalPostText(updatePostId, getPostTextFromBody(req.body, updatePostId));
+    res.redirect(303, `/?manage=${encodeURIComponent(getSiteAdminKey())}&notice=${encodeURIComponent(updated ? 'Материал обновлен' : 'Материал не найден')}`);
+    return;
+  }
+
   const ids = getPostIdsFromBody(req.body);
   if (useBlobStorage) {
-    await deleteBlobPosts(ids);
+    const deletedResult = ids.length > 1
+      ? await deleteBlobPosts(ids)
+      : ids.length === 1
+        ? await deleteBlobPost(ids[0])
+        : false;
+    const deleted = deletedResult ? ids.length : 0;
+    res.redirect(303, `/?manage=${encodeURIComponent(getSiteAdminKey())}&notice=${encodeURIComponent(`Удалено: ${deleted}`)}`);
   } else {
     await store.deletePosts(ids);
+    res.redirect(303, `/?manage=${encodeURIComponent(getSiteAdminKey())}&notice=${encodeURIComponent(`Удалено: ${ids.length}`)}`);
   }
-  res.redirect(303, `/?manage=${encodeURIComponent(getSiteAdminKey())}&notice=${encodeURIComponent(`Удалено: ${ids.length}`)}`);
 });
 
 app.post('/register', async (req, res) => {
@@ -133,6 +164,12 @@ app.get('/a/:token', async (req, res) => {
 
   if (!isActiveAccess(access)) {
     res.send(renderRegistrationPage({ title, state: 'expired' }));
+    return;
+  }
+
+  const device = await checkAccessDevice({ req, res, token: req.params.token });
+  if (!device.allowed) {
+    res.send(renderDeviceLimitPage({ title, maxDevices: device.maxDevices }));
     return;
   }
 
@@ -250,6 +287,55 @@ function getPostIdsFromBody(body) {
   if (Array.isArray(value)) return value.map(String).filter(Boolean);
   if (value) return [String(value)];
   return [];
+}
+
+function getUpdatePostId(body) {
+  return String(body?.updatePostId || '').trim();
+}
+
+function getPostTextFromBody(body, id) {
+  return String(body?.[`postText:${id}`] || '');
+}
+
+async function updateLocalPostText(id, text) {
+  const postId = String(id || '');
+  const post = store.state.posts.find((item) => item.id === postId);
+  if (!post) return false;
+  post.text = String(text || '').trim();
+  await store.save();
+  return true;
+}
+
+async function checkAccessDevice({ req, res, token }) {
+  if (!useBlobStorage) return { allowed: true, devices: 1, maxDevices: getMaxDevices() };
+
+  let deviceId = getCookie(req, 'course_device');
+  if (!deviceId) {
+    deviceId = crypto.randomBytes(16).toString('base64url');
+    setCookie(res, 'course_device', deviceId);
+  }
+
+  return registerAccessDevice({
+    token,
+    deviceId,
+    userAgent: req.headers['user-agent'] || '',
+    maxDevices: getMaxDevices()
+  });
+}
+
+function getMaxDevices() {
+  return Math.max(1, Number(process.env.ACCESS_MAX_DEVICES || 3));
+}
+
+function getCookie(req, name) {
+  const cookies = String(req.headers.cookie || '').split(';');
+  const prefix = `${name}=`;
+  const found = cookies.map((item) => item.trim()).find((item) => item.startsWith(prefix));
+  return found ? decodeURIComponent(found.slice(prefix.length)) : '';
+}
+
+function setCookie(res, name, value) {
+  res.setHeader('Set-Cookie', `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=31536000; HttpOnly; SameSite=Lax`);
 }
 
 async function getState() {

@@ -1,9 +1,24 @@
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { parseAccessToken } from '../src/access-token.js';
-import { deleteBlobPosts, deleteBlobPost, deleteBlobTopic, renameBlobMedia, hasBlobStorage, readBlobState } from '../src/blob-storage.js';
-import { renderFeedPage, renderManagePage, renderRegistrationPage } from '../src/render.js';
+import {
+  deleteBlobPost,
+  deleteBlobPosts,
+  deleteBlobTopic,
+  hasBlobStorage,
+  readBlobState,
+  registerAccessDevice,
+  renameBlobMedia,
+  updateBlobPostText
+} from '../src/blob-storage.js';
+import {
+  renderDeviceLimitPage,
+  renderFeedPage,
+  renderManagePage,
+  renderRegistrationPage
+} from '../src/render.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..');
@@ -37,10 +52,22 @@ export default async function handler(req, res) {
         redirect(res, `/?manage=${encodeURIComponent(getSiteAdminKey())}`);
         return;
       }
+
+      const updatePostId = getUpdatePostId(body);
+      if (updatePostId) {
+        const updated = await updateBlobPostText(updatePostId, getPostTextFromBody(body, updatePostId));
+        redirect(res, `/?manage=${encodeURIComponent(getSiteAdminKey())}&notice=${encodeURIComponent(updated ? 'Материал обновлен' : 'Материал не найден')}`);
+        return;
+      }
       
       const ids = getPostIdsFromBody(body);
-      await deleteBlobPosts(ids);
-      redirect(res, `/?manage=${encodeURIComponent(getSiteAdminKey())}&notice=${encodeURIComponent(`Удалено: ${ids.length}`)}`);
+      const deletedResult = ids.length > 1
+        ? await deleteBlobPosts(ids)
+        : ids.length === 1
+          ? await deleteBlobPost(ids[0])
+          : false;
+      const deleted = deletedResult ? ids.length : 0;
+      redirect(res, `/?manage=${encodeURIComponent(getSiteAdminKey())}&notice=${encodeURIComponent(`Удалено: ${deleted}`)}`);
       return;
     }
 
@@ -60,12 +87,16 @@ export default async function handler(req, res) {
 
   const token = getAccessToken(req);
   const access = token ? getAccess(token, state) : null;
-  const html = access && isActiveAccess(access)
-    ? renderFeedPage({ title, posts: getPosts(state), access, token, view: req.query.view, topics: state.topics })
-    : renderRegistrationPage({ title, state: access ? 'expired' : 'default' });
+  let html = renderRegistrationPage({ title, state: access ? 'expired' : 'default' });
+  if (access && isActiveAccess(access)) {
+    const device = await checkAccessDevice({ req, res, token });
+    html = device.allowed
+      ? renderFeedPage({ title, posts: getPosts(state), access, token, view: req.query.view, topics: state.topics })
+      : renderDeviceLimitPage({ title, maxDevices: device.maxDevices });
+  }
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Cache-Control', 'private, no-cache, must-revalidate');
   res.setHeader('Pragma', 'no-cache');
   res.setHeader('Expires', '0');
   res.status(200).send(html);
@@ -107,6 +138,46 @@ function getPostIdsFromBody(body) {
   if (Array.isArray(value)) return value.map(String).filter(Boolean);
   if (value) return [String(value)];
   return [];
+}
+
+function getUpdatePostId(body) {
+  return String(body?.updatePostId || '').trim();
+}
+
+function getPostTextFromBody(body, id) {
+  return String(body?.[`postText:${id}`] || '');
+}
+
+async function checkAccessDevice({ req, res, token }) {
+  if (!hasBlobStorage()) return { allowed: true, devices: 1, maxDevices: getMaxDevices() };
+
+  let deviceId = getCookie(req, 'course_device');
+  if (!deviceId) {
+    deviceId = crypto.randomBytes(16).toString('base64url');
+    setCookie(res, 'course_device', deviceId);
+  }
+
+  return registerAccessDevice({
+    token,
+    deviceId,
+    userAgent: req.headers['user-agent'] || '',
+    maxDevices: getMaxDevices()
+  });
+}
+
+function getMaxDevices() {
+  return Math.max(1, Number(process.env.ACCESS_MAX_DEVICES || 3));
+}
+
+function getCookie(req, name) {
+  const cookies = String(req.headers.cookie || '').split(';');
+  const prefix = `${name}=`;
+  const found = cookies.map((item) => item.trim()).find((item) => item.startsWith(prefix));
+  return found ? decodeURIComponent(found.slice(prefix.length)) : '';
+}
+
+function setCookie(res, name, value) {
+  res.setHeader('Set-Cookie', `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=31536000; HttpOnly; Secure; SameSite=Lax`);
 }
 
 function redirect(res, location) {
