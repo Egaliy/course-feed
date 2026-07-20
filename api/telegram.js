@@ -18,6 +18,14 @@ import {
 import { extractMedia, extractText } from '../src/media.js';
 
 const accessDaysPrompt = 'На сколько дней выдать доступ? Введите число от 1 до 3650.';
+const durations = [
+  { label: '3 дня', code: 'd3', days: 3 },
+  { label: '7 дней', code: 'd7', days: 7 },
+  { label: '1 месяц', code: 'm1', months: 1 },
+  { label: '3 месяца', code: 'm3', months: 3 },
+  { label: '6 месяцев', code: 'm6', months: 6 },
+  { label: '9 месяцев', code: 'm9', months: 9 }
+];
 
 let botMenuCommandsConfigured = false;
 
@@ -89,7 +97,7 @@ async function handleUpdate({ update, botToken }) {
 
   if (text === '/link') {
     await deleteMessage({ botToken, chatId, messageId: message.message_id });
-    await askAccessDays({ botToken, chatId });
+    await sendAccessDurationPicker({ botToken, chatId });
     return;
   }
 
@@ -307,6 +315,13 @@ async function handleCallback({ callback, botToken }) {
     return;
   }
 
+  if (payload === 'link:custom') {
+    await answerCallback({ botToken, callbackId: callback.id });
+    await deleteMessage({ botToken, chatId, messageId: callback.message.message_id });
+    await askAccessDays({ botToken, chatId });
+    return;
+  }
+
   const match = payload.match(/^link:([A-Za-z0-9]+)$/);
   if (!match) return;
 
@@ -343,6 +358,27 @@ async function askAccessDays({ botToken, chatId }) {
   });
 }
 
+async function sendAccessDurationPicker({ botToken, chatId }) {
+  const buttons = durations.map((item) => ({
+    text: item.label,
+    callback_data: `link:${item.code}`
+  }));
+
+  await sendMessage({
+    botToken,
+    chatId,
+    text: 'На какой срок выдать доступ?',
+    replyMarkup: {
+      inline_keyboard: [
+        buttons.slice(0, 2),
+        buttons.slice(2, 4),
+        buttons.slice(4, 6),
+        [{ text: 'Свой срок', callback_data: 'link:custom' }]
+      ]
+    }
+  });
+}
+
 function isAccessDaysReply(message) {
   return String(message.reply_to_message?.text || '').startsWith('На сколько дней выдать доступ?')
     || String(message.reply_to_message?.text || '').startsWith('Нужно ввести целое число');
@@ -361,7 +397,7 @@ async function sendHelpMessage({ botToken, chatId }) {
     text: [
       'Команды бота:',
       '',
-      '/link - создать ссылку на любое количество дней',
+      '/link - создать ссылку на готовый или свой срок',
       '/manage - открыть управление материалами на сайте',
       '/delete - удалить материалы через бота',
       '/topic_add Название - добавить новый раздел',
@@ -729,6 +765,8 @@ function getSiteAdminKey() {
 function getDurationByCode(code) {
   const value = String(code || '');
   const legacyMonths = Number(value);
+  const preset = durations.find((item) => item.code === value);
+  if (preset) return preset;
   const dayMatch = value.match(/^d(\d+)$/);
   const monthMatch = value.match(/^m(\d+)$/);
   if (dayMatch) return { days: Number(dayMatch[1]) };

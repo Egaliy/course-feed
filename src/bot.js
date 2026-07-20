@@ -7,6 +7,14 @@ import { downloadTelegramFile, extractMedia, extractText } from './media.js';
 import { normalizeTopics, getTopicById } from './topics.js';
 
 const accessDaysPrompt = 'На сколько дней выдать доступ? Введите число от 1 до 3650.';
+const durations = [
+  { label: '3 дня', code: 'd3', days: 3 },
+  { label: '7 дней', code: 'd7', days: 7 },
+  { label: '1 месяц', code: 'm1', months: 1 },
+  { label: '3 месяца', code: 'm3', months: 3 },
+  { label: '6 месяцев', code: 'm6', months: 6 },
+  { label: '9 месяцев', code: 'm9', months: 9 }
+];
 
 export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir }) {
   const bot = new Telegraf(botToken);
@@ -27,7 +35,7 @@ export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir 
     return ctx.reply([
       'Команды бота:',
       '',
-      '/link - создать ссылку на любое количество дней',
+      '/link - создать ссылку на готовый или свой срок',
       '/manage - открыть управление материалами на сайте',
       '/topic_add Название - добавить новый раздел',
       '/subtopic_add Раздел | Подраздел - добавить подраздел',
@@ -50,7 +58,13 @@ export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir 
     await deleteCommandMessage(ctx);
     if (!isAdmin(ctx, adminIds)) return replyTemporary(ctx, 'Нет доступа.');
 
-    return ctx.reply(accessDaysPrompt, Markup.forceReply());
+    const buttons = durations.map((item) => Markup.button.callback(item.label, `link:${item.code}`));
+    return ctx.reply('На какой срок выдать доступ?', Markup.inlineKeyboard([
+      buttons.slice(0, 2),
+      buttons.slice(2, 4),
+      buttons.slice(4, 6),
+      [Markup.button.callback('Свой срок', 'link:custom')]
+    ]));
   });
 
   bot.command('topic', async (ctx) => {
@@ -84,17 +98,25 @@ export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir 
     return ctx.reply(`Подраздел добавлен: ${parent.label} → ${topic.label}`);
   });
 
-  bot.action(/^link:(\d+)$/, async (ctx) => {
+  bot.action('link:custom', async (ctx) => {
+    if (!isAdmin(ctx, adminIds)) return ctx.answerCbQuery('Нет доступа.');
+    await ctx.answerCbQuery();
+    await ctx.deleteMessage().catch(() => {});
+    return ctx.reply(accessDaysPrompt, Markup.forceReply());
+  });
+
+  bot.action(/^link:([dm]\d+|\d+)$/, async (ctx) => {
     if (!isAdmin(ctx, adminIds)) return ctx.answerCbQuery('Нет доступа.');
 
-    const months = Number(ctx.match[1]);
-    const token = createCompactAccessToken({ months, secret: getAccessSecret() });
+    const duration = getDurationByCode(ctx.match[1]);
+    if (!duration) return ctx.answerCbQuery('Неизвестный срок');
+    const token = createCompactAccessToken({ ...duration, secret: getAccessSecret() });
     const baseUrl = readPublicBaseUrl(publicBaseUrl);
     const url = `${baseUrl.replace(/\/$/, '')}/a/${token}`;
 
     await ctx.answerCbQuery('Ссылка создана');
     await ctx.deleteMessage().catch(() => {});
-    return ctx.reply(`Ссылка-доступ на ${monthsText(months)}:\n${url}`);
+    return ctx.reply(`Ссылка-доступ на ${duration.days ? daysText(duration.days) : monthsText(duration.months)}:\n${url}`);
   });
 
   bot.action(/^topic:([A-Za-z0-9_-]+)$/, async (ctx) => {
@@ -259,6 +281,14 @@ function daysText(days) {
   if (mod10 === 1) return `${days} день`;
   if (mod10 >= 2 && mod10 <= 4) return `${days} дня`;
   return `${days} дней`;
+}
+
+function getDurationByCode(code) {
+  const value = String(code || '');
+  const preset = durations.find((item) => item.code === value);
+  if (preset) return preset;
+  const legacyMonths = Number(value);
+  return legacyMonths > 0 ? { months: legacyMonths } : null;
 }
 
 async function askAlbumTopic({ ctx, store, albumBuffers, pendingCache }) {
