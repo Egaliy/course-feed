@@ -17,14 +17,7 @@ import {
 } from '../src/blob-storage.js';
 import { extractMedia, extractText } from '../src/media.js';
 
-const durations = [
-  { label: '3 дня', code: 'd3', days: 3 },
-  { label: '7 дней', code: 'd7', days: 7 },
-  { label: '1 месяц', code: 'm1', months: 1 },
-  { label: '3 месяца', code: 'm3', months: 3 },
-  { label: '6 месяцев', code: 'm6', months: 6 },
-  { label: '9 месяцев', code: 'm9', months: 9 }
-];
+const accessDaysPrompt = 'На сколько дней выдать доступ? Введите число от 1 до 3650.';
 
 let botMenuCommandsConfigured = false;
 
@@ -96,17 +89,7 @@ async function handleUpdate({ update, botToken }) {
 
   if (text === '/link') {
     await deleteMessage({ botToken, chatId, messageId: message.message_id });
-    await sendMessage({
-      botToken,
-      chatId,
-      text: 'На какой срок выдать доступ ученику?',
-      replyMarkup: {
-        inline_keyboard: durations.map((item) => [{
-          text: item.label,
-          callback_data: `link:${item.code}`
-        }])
-      }
-    });
+    await askAccessDays({ botToken, chatId });
     return;
   }
 
@@ -143,6 +126,27 @@ async function handleUpdate({ update, botToken }) {
   }
 
   if (text.startsWith('/')) return;
+
+  if (isAccessDaysReply(message)) {
+    const days = parseAccessDays(text);
+    if (!days) {
+      await sendMessage({
+        botToken,
+        chatId,
+        text: 'Нужно ввести целое число от 1 до 3650.',
+        replyMarkup: { force_reply: true, selective: true }
+      });
+      return;
+    }
+
+    const url = await createAccessUrl({ days });
+    await sendMessage({
+      botToken,
+      chatId,
+      text: `Ссылка-доступ на ${durationText({ days })}:\n${url}`
+    });
+    return;
+  }
 
   if (message.reply_to_message && message.reply_to_message.text && message.reply_to_message.text.includes('(ID: ')) {
     const match = message.reply_to_message.text.match(/\(ID:\s*([A-Za-z0-9_-]+)\)/);
@@ -330,6 +334,26 @@ async function createAccessUrl(duration) {
   return `${baseUrl}/a/${token}`;
 }
 
+async function askAccessDays({ botToken, chatId }) {
+  await sendMessage({
+    botToken,
+    chatId,
+    text: accessDaysPrompt,
+    replyMarkup: { force_reply: true, selective: true }
+  });
+}
+
+function isAccessDaysReply(message) {
+  return String(message.reply_to_message?.text || '').startsWith('На сколько дней выдать доступ?')
+    || String(message.reply_to_message?.text || '').startsWith('Нужно ввести целое число');
+}
+
+function parseAccessDays(value) {
+  if (!/^\d{1,4}$/.test(String(value || '').trim())) return 0;
+  const days = Number(value);
+  return Number.isInteger(days) && days >= 1 && days <= 3650 ? days : 0;
+}
+
 async function sendHelpMessage({ botToken, chatId }) {
   await sendMessage({
     botToken,
@@ -337,7 +361,7 @@ async function sendHelpMessage({ botToken, chatId }) {
     text: [
       'Команды бота:',
       '',
-      '/link - создать ссылку доступа на 3 дня, 7 дней, 1, 3, 6 или 9 месяцев',
+      '/link - создать ссылку на любое количество дней',
       '/manage - открыть управление материалами на сайте',
       '/delete - удалить материалы через бота',
       '/topic_add Название - добавить новый раздел',
@@ -705,15 +729,20 @@ function getSiteAdminKey() {
 function getDurationByCode(code) {
   const value = String(code || '');
   const legacyMonths = Number(value);
-  return durations.find((item) => item.code === value)
-    || durations.find((item) => item.months === legacyMonths)
-    || null;
+  const dayMatch = value.match(/^d(\d+)$/);
+  const monthMatch = value.match(/^m(\d+)$/);
+  if (dayMatch) return { days: Number(dayMatch[1]) };
+  if (monthMatch) return { months: Number(monthMatch[1]) };
+  return legacyMonths > 0 ? { months: legacyMonths } : null;
 }
 
 function durationText(duration) {
   if (duration.days) {
-    if (duration.days === 1) return '1 день';
-    if (duration.days > 1 && duration.days < 5) return `${duration.days} дня`;
+    const mod100 = duration.days % 100;
+    const mod10 = duration.days % 10;
+    if (mod100 >= 11 && mod100 <= 14) return `${duration.days} дней`;
+    if (mod10 === 1) return `${duration.days} день`;
+    if (mod10 >= 2 && mod10 <= 4) return `${duration.days} дня`;
     return `${duration.days} дней`;
   }
 

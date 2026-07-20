@@ -26,11 +26,18 @@ export function createCompactAccessToken({ months = 0, days = 0, secret }) {
     expiresAt.setMonth(expiresAt.getMonth() + months);
   }
 
-  const payload = Buffer.alloc(10);
-  payload.writeUInt8(2, 0);
-  payload.writeUInt8(days ? 200 + days : months, 1);
-  payload.writeUInt32BE(Math.floor(expiresAt.getTime() / 1000), 2);
-  crypto.randomBytes(4).copy(payload, 6);
+  const payload = days ? Buffer.alloc(11) : Buffer.alloc(10);
+  if (days) {
+    payload.writeUInt8(3, 0);
+    payload.writeUInt16BE(days, 1);
+    payload.writeUInt32BE(Math.floor(expiresAt.getTime() / 1000), 3);
+    crypto.randomBytes(4).copy(payload, 7);
+  } else {
+    payload.writeUInt8(2, 0);
+    payload.writeUInt8(months, 1);
+    payload.writeUInt32BE(Math.floor(expiresAt.getTime() / 1000), 2);
+    crypto.randomBytes(4).copy(payload, 6);
+  }
 
   const body = payload.toString('base64url');
   const signature = signBuffer(payload, secret).subarray(0, 8).toString('base64url');
@@ -71,18 +78,24 @@ export function parseCompactAccessToken(token, secret) {
     return null;
   }
 
-  if (payload.length !== 10 || payload.readUInt8(0) !== 2) return null;
+  const version = payload.readUInt8(0);
+  if (!((version === 2 && payload.length === 10) || (version === 3 && payload.length === 11))) {
+    return null;
+  }
 
   const expected = signBuffer(payload, secret).subarray(0, 8).toString('base64url');
   if (!timingSafeEqual(signature, expected)) return null;
 
-  const duration = payload.readUInt8(1);
-  const days = duration >= 200 ? duration - 200 : 0;
-  const months = days ? 0 : duration;
-  const expiresAt = new Date(payload.readUInt32BE(2) * 1000).toISOString();
+  const legacyDuration = version === 2 ? payload.readUInt8(1) : 0;
+  const days = version === 3
+    ? payload.readUInt16BE(1)
+    : (legacyDuration >= 200 ? legacyDuration - 200 : 0);
+  const months = days ? 0 : legacyDuration;
+  const expiresOffset = version === 3 ? 3 : 2;
+  const expiresAt = new Date(payload.readUInt32BE(expiresOffset) * 1000).toISOString();
 
   return {
-    v: 2,
+    v: version,
     months,
     ...(days ? { days } : {}),
     expiresAt

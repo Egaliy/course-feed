@@ -6,12 +6,7 @@ import { createCompactAccessToken } from './access-token.js';
 import { downloadTelegramFile, extractMedia, extractText } from './media.js';
 import { normalizeTopics, getTopicById } from './topics.js';
 
-const durations = [
-  { label: '1 месяц', months: 1 },
-  { label: '3 месяца', months: 3 },
-  { label: '6 месяцев', months: 6 },
-  { label: '9 месяцев', months: 9 }
-];
+const accessDaysPrompt = 'На сколько дней выдать доступ? Введите число от 1 до 3650.';
 
 export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir }) {
   const bot = new Telegraf(botToken);
@@ -32,7 +27,7 @@ export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir 
     return ctx.reply([
       'Команды бота:',
       '',
-      '/link - создать ссылку доступа на 1, 3, 6 или 9 месяцев',
+      '/link - создать ссылку на любое количество дней',
       '/manage - открыть управление материалами на сайте',
       '/topic_add Название - добавить новый раздел',
       '/subtopic_add Раздел | Подраздел - добавить подраздел',
@@ -55,10 +50,7 @@ export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir 
     await deleteCommandMessage(ctx);
     if (!isAdmin(ctx, adminIds)) return replyTemporary(ctx, 'Нет доступа.');
 
-    return ctx.reply(
-      'На какой срок выдать доступ ученику?',
-      Markup.inlineKeyboard(durations.map((item) => [Markup.button.callback(item.label, `link:${item.months}`)]))
-    );
+    return ctx.reply(accessDaysPrompt, Markup.forceReply());
   });
 
   bot.command('topic', async (ctx) => {
@@ -185,6 +177,17 @@ export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir 
     if (!isAdmin(ctx, adminIds)) return;
 
     const text = extractText(ctx.message);
+    if (isAccessDaysReply(ctx.message)) {
+      const days = parseAccessDays(text);
+      if (!days) {
+        return ctx.reply('Нужно ввести целое число от 1 до 3650.', Markup.forceReply());
+      }
+
+      const token = createCompactAccessToken({ days, secret: getAccessSecret() });
+      const baseUrl = readPublicBaseUrl(publicBaseUrl).replace(/\/$/, '');
+      return ctx.reply(`Ссылка-доступ на ${daysText(days)}:\n${baseUrl}/a/${token}`);
+    }
+
     if (text && !text.startsWith('/')) {
       const pendingIdToRename = adminRenameStateLocal.get(ctx.from.id);
       if (pendingIdToRename) {
@@ -235,6 +238,27 @@ export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir 
   });
 
   return bot;
+}
+
+function isAccessDaysReply(message) {
+  const prompt = String(message.reply_to_message?.text || '');
+  return prompt.startsWith('На сколько дней выдать доступ?')
+    || prompt.startsWith('Нужно ввести целое число');
+}
+
+function parseAccessDays(value) {
+  if (!/^\d{1,4}$/.test(String(value || '').trim())) return 0;
+  const days = Number(value);
+  return Number.isInteger(days) && days >= 1 && days <= 3650 ? days : 0;
+}
+
+function daysText(days) {
+  const mod100 = days % 100;
+  const mod10 = days % 10;
+  if (mod100 >= 11 && mod100 <= 14) return `${days} дней`;
+  if (mod10 === 1) return `${days} день`;
+  if (mod10 >= 2 && mod10 <= 4) return `${days} дня`;
+  return `${days} дней`;
 }
 
 async function askAlbumTopic({ ctx, store, albumBuffers, pendingCache }) {
