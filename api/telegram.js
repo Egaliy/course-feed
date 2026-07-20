@@ -3,16 +3,17 @@ import {
   addBlobPost,
   addBlobTopic,
   addPendingPublication,
+  deleteBlobPost,
   deletePendingPublication,
   getAdminTopicSelection,
   getBlobTopics,
   getPendingPublication,
   hasBlobStorage,
+  readBlobState,
   setAdminTopicSelection,
   setAdminRenameState,
   getAdminRenameState,
-  uploadTelegramFileToBlob,
-  deleteBlobPost
+  uploadTelegramFileToBlob
 } from '../src/blob-storage.js';
 import { extractMedia, extractText } from '../src/media.js';
 
@@ -110,6 +111,12 @@ async function handleUpdate({ update, botToken }) {
   if (text === '/manage') {
     await deleteMessage({ botToken, chatId, messageId: message.message_id });
     await sendManageLink({ botToken, chatId });
+    return;
+  }
+
+  if (text === '/delete') {
+    await deleteMessage({ botToken, chatId, messageId: message.message_id });
+    await sendDeletePicker({ botToken, chatId });
     return;
   }
 
@@ -217,10 +224,7 @@ async function askPublicationTopic({ message, botToken, chatId, userId }) {
     getBlobTopics()
   ]);
 
-  const keyboard = chunkButtons(topics.map((topic) => ({
-    text: topic.parentId ? `↳ ${topic.label}` : topic.label,
-    callback_data: `pub:${pending.id}:${topic.id}`
-  })), 1);
+  const keyboard = buildTopicKeyboard(topics, (topic) => `pub:${pending.id}:${topic.id}`);
 
   if (pending.media && pending.media.length > 0) {
     keyboard.push([{ text: '📝 Переименовать файлы', callback_data: `ren:${pending.id}` }]);
@@ -244,6 +248,18 @@ async function handleCallback({ callback, botToken }) {
 
   if (!isAdmin(userId)) {
     await answerCallback({ botToken, callbackId: callback.id, text: 'Нет доступа.' });
+    return;
+  }
+
+  const deleteMatch = payload.match(/^del:([A-Za-z0-9_-]+)$/);
+  if (deleteMatch) {
+    await deletePostFromCallback({
+      botToken,
+      chatId,
+      callbackId: callback.id,
+      messageId: callback.message.message_id,
+      postId: deleteMatch[1]
+    });
     return;
   }
 
@@ -334,6 +350,7 @@ async function sendHelpMessage({ botToken, chatId }) {
       '',
       '/link - создать ссылку доступа на 1, 3, 6 или 9 месяцев',
       '/manage - открыть управление материалами на сайте',
+      '/delete - удалить материалы через бота',
       '/topic_add Название - добавить новый раздел',
       '/subtopic_add Раздел | Подраздел - добавить подраздел',
       '/help - показать эту подсказку',
@@ -355,6 +372,7 @@ async function ensureBotMenuCommands(botToken) {
           { command: 'start', description: 'показать меню' },
           { command: 'link', description: 'создать ссылку доступа' },
           { command: 'manage', description: 'управление материалами' },
+          { command: 'delete', description: 'удалить материалы' },
           { command: 'topic_add', description: 'добавить раздел' },
           { command: 'subtopic_add', description: 'добавить подраздел' },
           { command: 'help', description: 'подсказка по командам' }
@@ -383,12 +401,42 @@ async function sendTopicPicker({ botToken, chatId, userId }) {
     chatId,
     text: `Выберите раздел для следующих публикаций.\nСейчас: ${active.label}`,
     replyMarkup: {
-      inline_keyboard: topics.map((topic) => [{
-        text: topic.id === active.id ? `✓ ${topic.label}` : topic.label,
-        callback_data: `topic:${topic.id}`
-      }])
+      inline_keyboard: buildTopicKeyboard(topics, (topic) => `topic:${topic.id}`, active.id)
     }
   });
+}
+
+async function sendDeletePicker({ botToken, chatId }) {
+  if (!hasBlobStorage()) {
+    await sendMessage({ botToken, chatId, text: 'Хранилище Vercel Blob еще не подключено.' });
+    return;
+  }
+
+  const [state, topics] = await Promise.all([
+    readBlobState(),
+    getBlobTopics()
+  ]);
+  const posts = [...(state.posts || [])].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  if (!posts.length) {
+    await sendMessage({ botToken, chatId, text: 'Материалов для удаления пока нет.' });
+    return;
+  }
+
+  const groups = groupPostsByTopic(posts, topics);
+  for (const group of groups) {
+    await sendMessage({
+      botToken,
+      chatId,
+      text: `Удаление материалов\nРаздел: ${group.label}`,
+      replyMarkup: {
+        inline_keyboard: group.posts.map((post) => [{
+          text: `🗑 ${describePost(post)} · ${formatTelegramTime(post.createdAt)}`,
+          callback_data: `del:${post.id}`
+        }])
+      }
+    });
+  }
 }
 
 async function createTopicFromCommand({ botToken, chatId, label }) {
@@ -489,6 +537,25 @@ async function publishPendingMessage({ botToken, chatId, userId, callbackId, mes
   });
 }
 
+async function deletePostFromCallback({ botToken, chatId, callbackId, messageId, postId }) {
+  const state = await readBlobState();
+  const post = (state.posts || []).find((item) => item.id === postId);
+  const deleted = await deleteBlobPost(postId);
+
+  await answerCallback({
+    botToken,
+    callbackId,
+    text: deleted ? 'Материал удален.' : 'Материал уже не найден.'
+  });
+
+  await deleteMessage({ botToken, chatId, messageId });
+  await sendMessage({
+    botToken,
+    chatId,
+    text: deleted ? `Удалено: ${describePost(post || {})}` : 'Материал уже не найден.'
+  });
+}
+
 function findTopicByText(topics, value) {
   const needle = normalizeText(value);
   return topics.find((topic) => (
@@ -500,6 +567,59 @@ function findTopicByText(topics, value) {
 
 function normalizeText(value) {
   return String(value || '').trim().toLowerCase();
+}
+
+function buildTopicKeyboard(topics, callbackFactory, activeId = '') {
+  const parents = topics.filter((topic) => !topic.parentId);
+  const rows = [];
+
+  for (const parent of parents) {
+    rows.push([{
+      text: `${parent.id === activeId ? '✓ ' : ''}${parent.label}`,
+      callback_data: callbackFactory(parent)
+    }]);
+
+    topics
+      .filter((topic) => topic.parentId === parent.id)
+      .forEach((child) => {
+        rows.push([{
+          text: `↳ ${child.id === activeId ? '✓ ' : ''}${child.label}`,
+          callback_data: callbackFactory(child)
+        }]);
+      });
+  }
+
+  return rows;
+}
+
+function groupPostsByTopic(posts, topics) {
+  const topicMap = new Map(topics.map((topic) => [topic.id, topic]));
+  const groups = new Map();
+
+  for (const post of posts) {
+    const topic = topicMap.get(String(post.topicId || '')) || topicMap.get('other') || { id: 'other', label: 'Прочее' };
+    const parent = topic.parentId ? topicMap.get(topic.parentId) : null;
+    const label = parent ? `${parent.label} → ${topic.label}` : topic.label;
+    const key = topic.id;
+
+    if (!groups.has(key)) {
+      groups.set(key, { label, posts: [] });
+    }
+
+    groups.get(key).posts.push(post);
+  }
+
+  return [...groups.values()];
+}
+
+function formatTelegramTime(value) {
+  return new Intl.DateTimeFormat('ru-RU', {
+    timeZone: process.env.COURSE_TIME_ZONE || 'Asia/Novosibirsk',
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(new Date(value));
 }
 
 async function sendMessage({ botToken, chatId, text, replyMarkup }) {
