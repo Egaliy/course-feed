@@ -217,21 +217,21 @@ export function createBot({ botToken, adminIds, publicBaseUrl, store, uploadDir 
       return;
     }
 
-    const text = extractText(ctx.message);
+    const messageText = extractText(ctx.message);
     const media = extractMedia(ctx.message);
-    if (!text && !media.length) return;
+    if (!messageText && !media.length) return;
 
     const pendingId = crypto.randomBytes(8).toString('base64url');
     pendingCache.set(pendingId, {
       id: pendingId,
       adminId: String(ctx.from?.id || ''),
       message: ctx.message,
-      text,
+      text: messageText,
       media,
       isAlbum: false
     });
 
-    await askPublicationTopic(ctx, store, pendingId, text, media);
+    await askPublicationTopic(ctx, store, pendingId, messageText, media);
   });
 
   return bot;
